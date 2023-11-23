@@ -14,7 +14,7 @@ import torchvision
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
 from models.architectures.conv_lstm import *
-from optimization.validation_condNF import validate
+from optimization.validation_stflow import validate
 
 import wandb
 os.environ["WANDB_SILENT"] = "true"
@@ -52,7 +52,6 @@ def trainer(args, train_loader, valid_loader, model,
     if args.resume:
         print('Loading optimizer state dict')
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
-
 
     state=None
     color = 'inferno' if args.trainset == 'era5' else 'viridis'
@@ -143,7 +142,7 @@ def trainer(args, train_loader, valid_loader, model,
                     # wandb.log({"Reconstructions (train) {}".format(step) : reconstructions})
 
                     plt.figure()
-                    plt.imshow(grid_reconstructions.permute(1, 2, 0)[:,:,0].contiguous(),cmap='inferno')
+                    plt.imshow(grid_reconstructions.permute(1, 2, 0)[:,:,0].contiguous(),cmap=color)
                     plt.axis('off')
                     plt.savefig(viz_dir + '/reconstructed_frame_t_{}.png'.format(step), dpi=300)
                     # plt.show()
@@ -156,7 +155,7 @@ def trainer(args, train_loader, valid_loader, model,
                     # wandb.log({"Context Frame at t-1 (train) {}".format(step) : past_imgs})
 
                     plt.figure()
-                    plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+                    plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
                     plt.axis('off')
                     plt.title("Context Frame at t-1 (train)")
                     plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
@@ -169,7 +168,7 @@ def trainer(args, train_loader, valid_loader, model,
                     # wandb.log({"Frame at t (train) {}".format(step) : future_imgs})
 
                     plt.figure()
-                    plt.imshow(grid_future.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+                    plt.imshow(grid_future.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
                     plt.axis('off')
                     plt.title("Ground Truth at t")
                     plt.savefig(viz_dir + '/frame_at_t_{}.png'.format(step), dpi=300)
@@ -186,7 +185,7 @@ def trainer(args, train_loader, valid_loader, model,
                     # visualize predictions
                     grid_samples = torchvision.utils.make_grid(predictions[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
                     plt.figure()
-                    plt.imshow(grid_samples.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+                    plt.imshow(grid_samples.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
                     plt.axis('off')
                     plt.title("Prediction at t")
                     plt.savefig(viz_dir + '/samples_{}.png'.format(step), dpi=300)

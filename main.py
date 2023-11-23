@@ -14,20 +14,11 @@ import numpy as np
 import os
 
 # Models
-from models.architectures import condDiff
-from models.architectures import condNF
-from models.architectures import unet3d
-from models.architectures import baseline_condNF
-from models.architectures import conv_lstm
-from models.architectures import conv_lstm_baseline
-# Optimization
-from optimization import trainer_condNF
-from optimization import trainer_condDiff
-from optimization import trainer_unet3d
-from optimization import trainer_convlstm
+from models.architectures import condNF, srflow
 
-# import evaluate
-import test
+# Optimization
+from optimization import trainer_stflow, trainer_stflow_ds
+
 import pdb
 from tensorboardX import SummaryWriter
 
@@ -76,11 +67,12 @@ def main(args):
 
         height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
 
-        model = condNF.FlowModel((in_channels, height, width),
-                                  args.filter_size, args.L, args.K, args.bsz,
-                                  args.lag_len, args.s, args.nb, args.device,
-                                  args.condch, args.nbits,
-                                  args.noscale, args.noscaletest).to(args.device)
+        st_model = condNF.FlowModel((in_channels, height, width),
+                                     args.filter_size, args.L, args.K, args.bsz,
+                                     args.lag_len, args.s, args.nb, args.device,
+                                     args.condch, args.nbits,
+                                     args.noscale, args.noscaletest).to(args.device)
+
         ckpt= None
         if args.resume:
             print("Resume training of model ...")
@@ -91,57 +83,25 @@ def main(args):
             model.load_state_dict(ckpt['model_state_dict'])
 
 
-        trainer_condNF.trainer(args=args, train_loader=train_loader,
-                               valid_loader=valid_loader,
-                               model=model,
-                               device=args.device,
-                               ckpt=ckpt)
+        if args.ds:
 
-    elif args.modeltype == "diff":
+            sr_model = srflow.SRFlow((in_channels, height, width), args.filter_size, args.L, args.K,
+                                      args.bsz, args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
 
-        # betas and T chosen as in https://arxiv.org/pdf/2006.11239.pdf
-        model = condDiff.DDPM(betas=(0.0001, 0.02),
-                              n_T=1000,
-                              device='cuda')
+            trainer_stflow_ds.trainer(args=args, train_loader=train_loader,
+                                      valid_loader=valid_loader,
+                                      srmodel=sr_model,
+                                      stmodel=st_model,
+                                      device=args.device,
+                                      ckpt=ckpt)
 
-        trainer_condDiff.trainer(args=args, train_loader=train_loader,
-                                 valid_loader=valid_loader,
-                                 model=model,
-                                 device=args.device)
+        else:
 
-    elif args.modeltype == "bs-flow":
-
-        model = baseline_condNF.FlowModel((in_channels, args.crop_size, args.crop_size),
-                                          args.filter_size, args.L, args.K, args.bsz,
-                                          args.lag_len, args.s, args.nb, args.device,
-                                          args.condch, args.nbits,
-                                          args.noscale, args.noscaletest).to(args.device)
-
-        trainer_baseline_st_flow.trainer(args=args, train_loader=train_loader,
-                                        valid_loader=valid_loader,
-                                        model=model,
-                                        device=args.device)
-    elif args.modeltype == "convLSTM":
-        model = conv_lstm_baseline.StackedConvLSTM(num_channels=in_channels, num_layers=1).to(args.device)
-        trainer_convlstm.trainer(args=args, train_loader=train_loader,
+            trainer_stflow.trainer(args=args, train_loader=train_loader,
                                     valid_loader=valid_loader,
                                     model=model,
-                                    device=args.device)
-
-    elif args.modeltype == "unet3d":
-        model = unet3d.UNet3D(in_channel=in_channels).to(args.device)
-
-        if args.resume:
-            modelname = 'model_epoch_1_step_25700_wbench.tar'
-            modelpath = os.getcwd() + "/runs/unet3d_wbench_2023_08_28_11_50_43/model_checkpoints/{}".format(modelname)
-            model = unet3d.UNet3D(in_channels)
-            ckpt = torch.load(modelpath)
-            model.load_state_dict(ckpt['model_state_dict'])
-
-        trainer_unet3d.trainer(args=args, train_loader=train_loader,
-                               valid_loader=valid_loader,
-                               model=model.cuda(),
-                               device=args.device)
+                                    device=args.device,
+                                    ckpt=ckpt)
 
 
 if __name__ == "__main__":
@@ -177,6 +137,8 @@ if __name__ == "__main__":
                         help="If model should be trained.")
     parser.add_argument("--resume", action="store_true",
                         help="If training should be resumed.")
+    parser.add_argument("--ds", action="store_true",
+                        help="Applies downscaling as well.")
 
     # hyperparameters
     parser.add_argument("--nbits", type=int, default=8,
@@ -206,9 +168,9 @@ if __name__ == "__main__":
                         help="# of residual-in-residual blocks in LR network.")
 
     # data
-    parser.add_argument("--datadir", type=str, default="data",
+    parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
                         help="Dataset to train the model on.")
-    parser.add_argument("--trainset", type=str, default="era5",
+    parser.add_argument("--trainset", type=str, default="wbench",
                         help="Dataset to train the model on.")
 
     args = parser.parse_args()

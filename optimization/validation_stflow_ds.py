@@ -6,7 +6,7 @@ import PIL
 import os
 import torchvision
 from torchvision import transforms
-import torch.nn as nn
+
 import sys
 sys.path.append("../../")
 
@@ -14,7 +14,7 @@ from os.path import exists, join
 import matplotlib.pyplot as plt
 import pdb
 
-def validate(model, val_loader, exp_name, logstep, args, device):
+def validate(model, val_loader, exp_name, logstep, args):
 
     random.seed(0)
     torch.manual_seed(0)
@@ -23,68 +23,93 @@ def validate(model, val_loader, exp_name, logstep, args, device):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-    state = None
-    loss = nn.MSELoss()
-    loss_list = []
+    state=None
+    nll_list=[]
     model.eval()
-
+    # print(len(val_loader))
     with torch.no_grad():
         for batch_idx, item in enumerate(val_loader):
 
+            print(batch_idx)
+
             x = item[0]
 
-            # split time series into context and prediction window
-            x_past, x_for = x[:,:-1,...].float().cuda(), x[:,-1,:,:,:].unsqueeze(1).cuda().float()
+            # split time series into lags and prediction window
+            x_past, x_for = x[:,:-1,...], x[:,-1,:,:,:].unsqueeze(1)
 
-            # reshape into correct format [bsz, num_channels, seq_len, height, width]
-            x_past = x_past.permute(0,2,1,3,4).contiguous().float().to(device)
-            x_for = x_for.permute(0,2,1,3,4).contiguous().float().to(device)
+            # reshape into correct format for 3D convolutions - but now i dont use them anymore? xD
+            x_past = x_past.permute(0,2,1,3,4).contiguous().float()
+            x_for = x_for.permute(0,2,1,3,4).contiguous().float()
 
-            out = model.forward(x_past)
-            l1_loss = loss(out, x_for)
+            z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
 
             # Generative loss
-            loss_list.append(l1_loss.mean().detach().cpu().numpy())
+            nll_list.append(nll.mean().detach().cpu().numpy())
+
+            if batch_idx == 100:
+                break
 
             # compute metrics
             # TODO: compute MSE
             # TODO: compute negative log predictive density
-            break
 
             # ---------------------- Evaluate Predictions---------------------- #
 
-        # visualize prediction
-        prediction = model(x_past)
+        # evalutae for different temperatures (just for last batch, perhaps change l8er)
+        mu0, _ = model._predict(x_past, state, eps=0)
+        mu05, _ = model._predict(x_past, state, eps=0.5)
+        mu08, _ = model._predict(x_past, state, eps=0.8)
+        mu1, _ = model._predict(x_past, state, eps=1)
 
-        savedir = "{}/snapshots/validation/predicted_frames_{}/".format(
-                        exp_name, args.trainset)
+        savedir = "{}/snapshots/validationset_{}/".format(exp_name, args.trainset)
 
         os.makedirs(savedir, exist_ok=True)
 
-        grid_ground_truth = torchvision.utils.make_grid(x_for.squeeze(1).cpu(), nrow=3)
+        grid_ground_truth = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), nrow=3)
         plt.figure()
         plt.imshow(grid_ground_truth.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
         plt.axis('off')
-        plt.title("Frame at t+1")
-        plt.savefig(savedir + "x_t+1_logstep_{}.png".format(logstep), dpi=300)
+        plt.title("Frame at t (valid)")
+        plt.savefig(savedir + "x_t_step_{}_valid.png".format(logstep), dpi=300)
 
         # visualize past frames the prediction is based on (context)
-        grid_past = torchvision.utils.make_grid(x_past[:, -1, :, :].cpu(), nrow=3)
+        grid_past = torchvision.utils.make_grid(x_past[0:9, -1, :, :].cpu(), nrow=3)
         plt.figure()
         plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
         plt.axis('off')
-        plt.title("Frame at t")
-        plt.savefig(savedir + "_x_t_logstep_{}.png".format(logstep), dpi=300)
+        plt.title("Frame at t (valid)")
+        plt.savefig(savedir + "_x_t_step_{}_valid.png".format(logstep), dpi=300)
 
-        grid_pred = torchvision.utils.make_grid(prediction[:,:,:,:].cpu(), nrow=3)
+        grid_mu0 = torchvision.utils.make_grid(mu0[0:9,:,:,:].squeeze(1).cpu(), nrow=3)
         plt.figure()
-        plt.imshow(grid_pred.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+        plt.imshow(grid_mu0.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
         plt.axis('off')
-        plt.title("Prediction at t+1")
-        plt.savefig(savedir + "prediction_logstep_{}.png".format(logstep), dpi=300)
+        plt.title("Prediction at t (valid), mu=0")
+        plt.savefig(savedir + "mu_0_logstep_{}_valid.png".format(logstep), dpi=300)
 
-    print("Average Validation MSE-Loss:", np.mean(loss_list))
-    return np.mean(loss_list)
+        grid_mu05 = torchvision.utils.make_grid(mu05[0:9,:,:,:].squeeze(1).cpu(), nrow=3)
+        plt.figure()
+        plt.imshow(grid_mu0.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+        plt.axis('off')
+        plt.title("Prediction at t (valid), mu=0.5")
+        plt.savefig(savedir + "mu_0.5_logstep_{}_valid.png".format(logstep), dpi=300)
+
+        grid_mu08 = torchvision.utils.make_grid(mu08[0:9,:,:,:].squeeze(1).cpu(), nrow=3)
+        plt.figure()
+        plt.imshow(grid_mu08.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+        plt.axis('off')
+        plt.title("Prediction at t (valid), mu=0.8")
+        plt.savefig(savedir + "mu_0.8_logstep_{}_valid.png".format(logstep), dpi=300)
+
+        grid_mu1 = torchvision.utils.make_grid(mu1[0:9,:,:,:].squeeze(1).cpu(), nrow=3)
+        plt.figure()
+        plt.imshow(grid_mu1.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+        plt.axis('off')
+        plt.title("Prediction at t (valid), mu=1.0")
+        plt.savefig(savedir + "mu_1_logstep_{}_valid.png".format(logstep), dpi=300)
+
+    print("Average Validation Neg. Log Probability Mass:", np.mean(nll_list))
+    return np.mean(nll_list)
 
 def mse(arg):
     """

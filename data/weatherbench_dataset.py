@@ -16,15 +16,11 @@ class XRToTensor:
         # unsqueeze to have a tensor of shape (CxWxH)
         return torch.from_numpy(zarr_array.values).unsqueeze(0)
 
-@dataclass # TODO: needs to be adapted!
-class MinMaxScaler:
-    max_value: float = 315.91873
-    min_value: float = 241.22385
-    values_range: Tuple[int, int] = (-1, 1)
-
-    def __call__(self, x):
-        x = (x - self.min_value) / (self.max_value - self.min_value)
-        return x * (self.values_range[1] - self.values_range[0]) + self.values_range[0]
+def minmax_scaler(x):
+    values_range = (0,1)
+    for i in range(x.shape[0]):
+        x[i,...] = (x[i,...] - x[i,...].max()) / (x[i,...].max() - x[i,...].min())
+    return x * (values_range[1] - values_range[0]) + values_range[0]
 
 @dataclass # TODO: needs to be adapted!
 class InverseMinMaxScaler:
@@ -44,16 +40,17 @@ class WeatherBenchData(Dataset):
     """
 
     data_path: str
+    args: None
     transform: Callable = None
     window_size: int = 2
+    s: int = 2
 
     def __post_init__(self):
 
         self.data = xr.open_mfdataset(self.data_path + '*.nc', combine='by_coords')['z'] #.sel(time=slice('2016', '2016')).mean('time').load()
 
         if self.transform is None:
-            self.transform = transforms.Compose([transforms.ToTensor(),  #XRToTensor(),
-                                                 MinMaxScaler(values_range=(0, 1))])
+            self.transform = transforms.Compose([XRToTensor()])
             # self.transform = transforms.ToTensor()
 
     def __len__(self):
@@ -63,18 +60,10 @@ class WeatherBenchData(Dataset):
 
         x = self.data[idx:idx+self.window_size+1]
 
-        # x = self.data.isel(time=idx)
-        # print(x.values.min()-273.15, x.values.max()-273.15), converting min and max temp to Celsius
         time = np.array(x.coords['time'])
         latitude = np.array(x.coords['lat'])
         longitude = np.array(x.coords['lon'])
 
-        # resize frames
-        x_resh = np.zeros((x.shape[0], x.shape[1]//1, x.shape[2]//1))
-
-        for i in range(self.window_size+1): # resize all three channels
-            x_resh[i,...] = resize(x[i,...], (x.shape[1]//1, x.shape[2]//1),
-                              anti_aliasing=True)
-
-        x=x_resh
-        return self.transform(x).permute(1,0,2).unsqueeze(1), str(time), latitude, longitude
+        x_ = minmax_scaler(x) 
+        
+        return self.transform(x_), str(time), latitude, longitude
