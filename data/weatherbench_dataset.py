@@ -64,6 +64,7 @@ class WeatherBenchData(Dataset):
         latitude = np.array(x.coords['lat'])
         longitude = np.array(x.coords['lon'])
 
+        # normalize over each time-step, perhaps change this laters
         x_ = minmax_scaler(x) 
         
         return self.transform(x_), str(time), latitude, longitude

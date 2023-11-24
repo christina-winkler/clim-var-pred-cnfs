@@ -11,6 +11,7 @@ import numpy as np
 import random
 import pdb
 import torchvision
+import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
 from models.architectures.conv_lstm import *
@@ -85,25 +86,22 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
     for epoch in range(args.epochs):
         for batch_idx, item in enumerate(train_loader):
 
-            x = item[0].to(device)
-
-            # TODO resize frames
-            x_resh = np.zeros((1, x.shape[0], x.shape[1]//args.s, x.shape[2]//args.s))
-            for i in range(args.lag_len+1): # resize all channels
-                x_resh[:,i,...] = resize(x[:,i,...], 
-                                        (x.shape[1]//args.s, x.shape[2]//args.s),
-                                        anti_aliasing=True).to(args.device)
+            x = item[0]
+            x_resh = F.interpolate(x[:,0,...], (16,32)).to(args.device)
 
             # split time series into lags and prediction window
-            x_past, x_for = x[:,:-1,...], x[:,-1,:,:,:].unsqueeze(1)
+            x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,:,:,:].unsqueeze(1)
 
             # reshape into correct format [bsz, num_channels, seq_len, height, width]
-            x_past = x_past.permute(0,2,1,3,4).contiguous().float().to(device)
-            x_for = x_for.permute(0,2,1,3,4).contiguous().float().to(device)
+            x_past_lr = x_past_lr.permute(0,2,1,3,4).contiguous().float().to(device)
+            x_for_lr = x_for_lr.permute(0,2,1,3,4).contiguous().float().to(device)
 
             # print(x_past.shape, x_for.shape)
-            model.train()
-            optimizer.zero_grad()
+            srmodel.train()
+            stmodel.train()
+
+            sr_optimizer.zero_grad()
+            st_optimizer.zero_grad()
 
             # # We need to init the underlying module in the dataparallel object
             # For ActNorm layers.
@@ -113,9 +111,14 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                                             xlr=x[:bsz_p_gpu],
                                             logdet=0)
 
-            z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
-            writer.add_scalar("nll_train", nll.mean().item(), step)
+            # run forecasting method
+            z, state, nll = stmodel.forward(x=x_for, x_past=x_past, state=state)
+            # writer.add_scalar("nll_train", nll.mean().item(), step)
             # wandb.log({"nll_train": nll.mean().item()}, step)
+
+            # run SR model
+            x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
+            srmodel.forward(x_hr=x_for, xlr=x_for_hat_lr)
 
             # Compute gradients
             nll.mean().backward()
@@ -123,8 +126,10 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
             # Update model parameters using calculated gradients
             st_optimizer.step()
             sr_optimizer.step()
+
+            st_scheduler.step()
             sr_scheduler.step()
-            sr_scheduler.step()
+
             step = step + 1
 
             print("[{}] Epoch: {}, Train Step: {:01d}/{}, Bsz = {}, NLL {:.3f}".format(
@@ -143,12 +148,12 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     else:
                         model_without_dataparallel = model
 
-                    model.eval()
+                    srmodel.eval()
+                    stmodel.eval()
 
                     # testing reconstruction - should be exact same as x_for
-                    # pdb.set_trace()
                     reconstructions, _ = model.forward(z=z.cuda(), x_past=x_past.cuda(), state=state,
-                                      use_stored=True, reverse=True)
+                                                       use_stored=True, reverse=True)
 
                     squared_recon_error = (reconstructions-x_for).mean()**2
                     print("Reconstruction Error:", (reconstructions-x_for).mean())
