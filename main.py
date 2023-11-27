@@ -80,7 +80,7 @@ def main(args):
         if args.ds:
 
             sr_model = srflow.SRFlow((in_channels, height, width), args.filter_size, args.L, args.K,
-                                      args.bsz, args.s//args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
+                                      args.bsz, args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
             
             st_model = condNF.FlowModel((in_channels, height//args.s, width//args.s),
                                         args.filter_size, args.L, args.K, args.bsz,

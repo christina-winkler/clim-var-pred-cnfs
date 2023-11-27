@@ -75,9 +75,6 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
     writer.add_hparams({'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.K,
                         'Levels':args.L}, {'nll_train': - np.inf})
 
-
-    # pdb.set_trace()
-
     if torch.cuda.device_count() > 1 and args.train:
         print("Running on {} GPUs!".format(torch.cuda.device_count()))
         srmodel = torch.nn.DataParallel(srmodel)
@@ -86,15 +83,18 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
     for epoch in range(args.epochs):
         for batch_idx, item in enumerate(train_loader):
 
-            x = item[0]
-            x_resh = F.interpolate(x[:,0,...], (16,32)).to(args.device)
+            x = item[0].to(args.device)
+
+            x_for, x_past = x[:,:, :1,...].squeeze(1), x[:,:,1:,...]
+
+            x_resh = F.interpolate(x[:,0,...], (16,32))
 
             # split time series into lags and prediction window
             x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,...].unsqueeze(1)
 
             # reshape into correct format [bsz, num_channels, seq_len, height, width]
-            x_past_lr = x_past_lr.unsqueeze(1).contiguous().float().to(device)
-            x_for_lr = x_for_lr.unsqueeze(1).contiguous().float().to(device)
+            x_past_lr = x_past_lr.unsqueeze(1).contiguous().float()
+            x_for_lr = x_for_lr.unsqueeze(1).contiguous().float()
 
             # print(x_past.shape, x_for.shape)
             srmodel.train()
@@ -118,8 +118,9 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
             # wandb.log({"nll_train": nll.mean().item()}, step)
 
             # run SR model
+            # pdb.set_trace()
             x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
-            z, nll_sr = srmodel.forward(x_hr=x_for_lr.squeeze(1), xlr=x_for_hat_lr.squeeze(1))
+            z, nll_sr = srmodel.forward(x_hr=x_for, xlr=x_for_hat_lr.squeeze(1))
 
             # Compute gradients
             nll_sr.mean().backward()
@@ -188,7 +189,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     plt.axis('off')
                     plt.title("Context Frame at t-1 (train)")
                     plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
-                    #
+                    
                     # # visualize future frame of the correct prediction
                     grid_future = torchvision.utils.make_grid(x_for_lr[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
                     array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))
