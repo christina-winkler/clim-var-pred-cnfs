@@ -67,12 +67,6 @@ def main(args):
 
         height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
 
-        st_model = condNF.FlowModel((in_channels, height, width),
-                                     args.filter_size, args.L, args.K, args.bsz,
-                                     args.lag_len, args.s, args.nb, args.device,
-                                     args.condch, args.nbits,
-                                     args.noscale, args.noscaletest).to(args.device)
-
         ckpt= None
         if args.resume:
             print("Resume training of model ...")
@@ -86,7 +80,13 @@ def main(args):
         if args.ds:
 
             sr_model = srflow.SRFlow((in_channels, height, width), args.filter_size, args.L, args.K,
-                                      args.bsz, args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
+                                      args.bsz, args.s//args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
+            
+            st_model = condNF.FlowModel((in_channels, height//args.s, width//args.s),
+                                        args.filter_size, args.L, args.K, args.bsz,
+                                        args.lag_len, args.s, args.nb, args.device,
+                                        args.condch, args.nbits,
+                                        args.noscale, args.noscaletest).to(args.device)
 
             trainer_stflow_ds.trainer(args=args, train_loader=train_loader,
                                       valid_loader=valid_loader,

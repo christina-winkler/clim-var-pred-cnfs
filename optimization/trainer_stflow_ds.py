@@ -90,11 +90,12 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
             x_resh = F.interpolate(x[:,0,...], (16,32)).to(args.device)
 
             # split time series into lags and prediction window
-            x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,:,:,:].unsqueeze(1)
+            x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,...].unsqueeze(1)
 
             # reshape into correct format [bsz, num_channels, seq_len, height, width]
-            x_past_lr = x_past_lr.permute(0,2,1,3,4).contiguous().float().to(device)
-            x_for_lr = x_for_lr.permute(0,2,1,3,4).contiguous().float().to(device)
+            # pdb.set_trace()
+            x_past_lr = x_past_lr.unsqueeze(1).contiguous().float().to(device)
+            x_for_lr = x_for_lr.unsqueeze(1).contiguous().float().to(device)
 
             # print(x_past.shape, x_for.shape)
             srmodel.train()
@@ -112,16 +113,18 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                                             logdet=0)
 
             # run forecasting method
-            z, state, nll = stmodel.forward(x=x_for, x_past=x_past, state=state)
+            z, state, nll_st = stmodel.forward(x=x_for_lr, x_past=x_past_lr, state=state)
+
             # writer.add_scalar("nll_train", nll.mean().item(), step)
             # wandb.log({"nll_train": nll.mean().item()}, step)
 
             # run SR model
             x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
-            srmodel.forward(x_hr=x_for, xlr=x_for_hat_lr)
+            z, nll_sr = srmodel.forward(x_hr=x_for_lr.squeeze(1), xlr=x_for_hat_lr.squeeze(1))
 
             # Compute gradients
-            nll.mean().backward()
+            nll_sr.mean().backward()
+            nll_st.mean().backward()
 
             # Update model parameters using calculated gradients
             st_optimizer.step()
@@ -132,12 +135,13 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
             step = step + 1
 
-            print("[{}] Epoch: {}, Train Step: {:01d}/{}, Bsz = {}, NLL {:.3f}".format(
+            print("[{}] Epoch: {}, Train Step: {:01d}/{}, Bsz = {}, NLL SR {:.3f}, NLL ST {:.3f}".format(
                     datetime.now().strftime("%Y-%m-%d %H:%M"),
                     epoch, step,
                     args.max_steps,
                     args.bsz,
-                    nll.mean()))
+                    nll_sr.mean(),
+                    nll_st.mean()))
 
             if step % args.log_interval == 0:
 
