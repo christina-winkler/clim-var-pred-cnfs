@@ -56,7 +56,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                                                    step_size=2 * 10 ** 5,
                                                    gamma=0.5)
 
-    st_scheduler = torch.optim.lr_scheduler.StepLR(sr_optimizer,
+    st_scheduler = torch.optim.lr_scheduler.StepLR(st_optimizer,
                                                    step_size=2 * 10 ** 5,
                                                    gamma=0.5)
     if args.resume:
@@ -93,7 +93,6 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
             x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,...].unsqueeze(1)
 
             # reshape into correct format [bsz, num_channels, seq_len, height, width]
-            # pdb.set_trace()
             x_past_lr = x_past_lr.unsqueeze(1).contiguous().float().to(device)
             x_for_lr = x_for_lr.unsqueeze(1).contiguous().float().to(device)
 
@@ -105,7 +104,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
             st_optimizer.zero_grad()
 
             # # We need to init the underlying module in the dataparallel object
-            # For ActNorm layers.
+            # For ActNorm layers. TODO: adapt this
             if needs_init and torch.cuda.device_count() > 1:
                 bsz_p_gpu = args.bsz // torch.cuda.device_count()
                 _, _ = model.module.forward(x_hr=y[:bsz_p_gpu],
@@ -147,20 +146,22 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
                 with torch.no_grad():
 
-                    if hasattr(model, "module"):
-                        model_without_dataparallel = model.module
+                    if hasattr(srmodel, "module"):
+                        srmodel_without_dataparallel = srmodel.module
+                        stmodel_without_dataparallel = stmodel.module
                     else:
-                        model_without_dataparallel = model
+                        srmodel_without_dataparallel = srmodel
+                        stmodel_without_dataparallel = stmodel
 
                     srmodel.eval()
                     stmodel.eval()
 
                     # testing reconstruction - should be exact same as x_for
-                    reconstructions, _ = model.forward(z=z.cuda(), x_past=x_past.cuda(), state=state,
+                    reconstructions, _ = stmodel.forward(z=z.cuda(), x_past=x_past_lr.cuda(), state=state,
                                                        use_stored=True, reverse=True)
 
-                    squared_recon_error = (reconstructions-x_for).mean()**2
-                    print("Reconstruction Error:", (reconstructions-x_for).mean())
+                    squared_recon_error = (reconstructions-x_for_lr).mean()**2
+                    print("Reconstruction Error:", (reconstructions-x_for_lr).mean())
                     # wandb.log({"Squared Reconstruction Error" : squared_recon_error})
 
                     grid_reconstructions = torchvision.utils.make_grid(reconstructions[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
@@ -176,7 +177,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     # plt.show()
 
                     # visualize past frames the prediction is based on (context)
-                    grid_past = torchvision.utils.make_grid(x_past[0:9, -1, :, :].cpu(), normalize=True, nrow=3)
+                    grid_past = torchvision.utils.make_grid(x_past_lr[0:9, -1, :, :].cpu(), normalize=True, nrow=3)
                     array_imgs_past = np.array(grid_past.permute(2,1,0)[:,:,0].contiguous().unsqueeze(2))
                     cmap_past = np.apply_along_axis(cm.inferno, 2, array_imgs_past)
                     past_imgs = wandb.Image(cmap_past, caption="Frame at t-1")
@@ -189,7 +190,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
                     #
                     # # visualize future frame of the correct prediction
-                    grid_future = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
+                    grid_future = torchvision.utils.make_grid(x_for_lr[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
                     array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))
                     cmap_future = np.apply_along_axis(cm.inferno, 2, array_imgs_future)
                     future_imgs = wandb.Image(cmap_future, caption="Frame at t")
@@ -203,7 +204,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
                      # predicting a new sample based on context window
                     print("Predicting ...")
-                    predictions, _ = model._predict(x_past.cuda(), state) # TODO: sample longer trajectories
+                    predictions, _ = stmodel._predict(x_past_lr.cuda(), state) # TODO: sample longer trajectories
                     grid_pred = torchvision.utils.make_grid(predictions[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
                     array_imgs_pred = np.array(grid_pred.permute(2,1,0)[:,:,0].unsqueeze(2))
                     cmap_pred = np.apply_along_axis(cm.inferno, 2, array_imgs_pred)
@@ -220,8 +221,11 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
 
             if step % args.val_interval == 0:
+
                 print('Validating model ... ')
-                nll_valid = validate(model_without_dataparallel,
+
+                nll_valid = validate(srmodel_without_dataparallel,
+                                     stmodel_without_dataparallel,
                                      valid_loader,
                                      args.experiment_dir,
                                      "{}".format(step),
@@ -233,12 +237,22 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
                 # save checkpoint only when nll lower than previous model
                 if nll_valid < prev_nll_epoch:
-                    PATH = args.experiment_dir + '/model_checkpoints/'
-                    os.makedirs(PATH, exist_ok=True)
+
+                    SRPATH = args.experiment_dir + '/srmodel_checkpoints/'
+                    STPATH = args.experiment_dir + '/stmodel_checkpoints/'
+
+                    os.makedirs(SRPATH, exist_ok=True)
+                    os.makedirs(STPATH, exist_ok=True)
                     torch.save({'epoch': epoch,
-                                'model_state_dict': model.state_dict(),
-                                'optimizer_state_dict': optimizer.state_dict(),
-                                'loss': nll_valid.mean()}, PATH+ f"model_epoch_{epoch}_step_{step}.tar")
+                                'model_state_dict': srmodel.state_dict(),
+                                'optimizer_state_dict': sr_optimizer.state_dict(),
+                                'loss': nll_valid.mean()}, SRPATH+ f"model_epoch_{epoch}_step_{step}.tar")
+
+                    torch.save({'epoch': epoch,
+                                'model_state_dict': stmodel.state_dict(),
+                                'optimizer_state_dict': st_optimizer.state_dict(),
+                                'loss': nll_valid.mean()}, STPATH+ f"model_epoch_{epoch}_step_{step}.tar")    
+
                     prev_nll_epoch = nll_valid
 
             logging_step += 1
@@ -250,10 +264,10 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
             print("Done Training for {} mini-batch update steps!".format(args.max_steps)
             )
 
-            if hasattr(model, "module"):
-                model_without_dataparallel = model.module
+            if hasattr(srmodel, "module"): # TODO this codeblock likely only works for SR model
+                model_without_dataparallel = srmodel.module
             else:
-                model_without_dataparallel = model
+                model_without_dataparallel = sr_modelmodel
 
             utils.save_model(model_without_dataparallel,
                              epoch, optimizer, args, time=True)
