@@ -898,7 +898,7 @@ if __name__ == "__main__":
     # Load testset
     _, _, test_loader, args = dataloading.load_data(args)
 
-    in_channels = next(iter(test_loader))[0].shape[2]
+    in_channels = next(iter(test_loader))[0].shape[1]
     height, width = next(iter(test_loader))[0].shape[3], next(iter(test_loader))[0].shape[4]
 
     args.device = "cuda"
@@ -911,7 +911,7 @@ if __name__ == "__main__":
     # stmodelpath = os.getcwd() + '/experiments/flow-3-level-4-k/models/{}.tar'.format(modelname)
 
     # no downscaling
-    modelname = 'model_epoch_0_step_750'
+    modelname = 'model_epoch_0_step_1500'
     modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_no_ds__2023_11_28_06_29_14/model_checkpoints/{}.tar'.format(modelname)
 
     model = condNF.FlowModel((in_channels, height, width),
@@ -921,6 +921,7 @@ if __name__ == "__main__":
                               args.noscale, args.noscaletest, args.testmode)
 
     print(torch.cuda.device_count())
+    pdb.set_trace()
     ckpt = torch.load(modelpath, map_location='cuda:0')
     model.load_state_dict(ckpt['model_state_dict'])
     model.eval()
