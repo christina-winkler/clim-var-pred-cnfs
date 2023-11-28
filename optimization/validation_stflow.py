@@ -30,16 +30,10 @@ def validate(model, val_loader, exp_name, logstep, args):
     with torch.no_grad():
         for batch_idx, item in enumerate(val_loader):
 
-            print(batch_idx)
-
-            x = item[0]
+            x = item[0].to(args.device)
 
             # split time series into lags and prediction window
-            x_past, x_for = x[:,:-1,...], x[:,-1,:,:,:].unsqueeze(1)
-
-            # reshape into correct format for 3D convolutions - but now i dont use them anymore? xD
-            x_past = x_past.permute(0,2,1,3,4).contiguous().float()
-            x_for = x_for.permute(0,2,1,3,4).contiguous().float()
+            x_for, x_past = x[:,:, :1,...], x[:,:,1:,...]
 
             z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
 
@@ -48,10 +42,6 @@ def validate(model, val_loader, exp_name, logstep, args):
 
             if batch_idx == 100:
                 break
-
-            # compute metrics
-            # TODO: compute MSE
-            # TODO: compute negative log predictive density
 
             # ---------------------- Evaluate Predictions---------------------- #
 

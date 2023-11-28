@@ -50,7 +50,7 @@ def validate(srmodel, stmodel, val_loader, exp_name, logstep, args):
 
             # run SR model
             x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
-            z, nll_sr = srmodel.forward(x_hr=x_for_lr.squeeze(1), xlr=x_for_hat_lr.squeeze(1))
+            z, nll_sr = srmodel.forward(x_hr=x_for, xlr=x_for_hat_lr.squeeze(1))
 
             # Generative loss
             nll_list.append(nll_st.mean().detach().cpu().numpy())
@@ -65,11 +65,9 @@ def validate(srmodel, stmodel, val_loader, exp_name, logstep, args):
         mu05, _ = stmodel._predict(x_past_lr, state, eps=0.5)
         mu08, _ = stmodel._predict(x_past_lr, state, eps=0.8)
         mu1, _ = stmodel._predict(x_past_lr, state, eps=1)
-        
-        pdb.set_trace()
 
         # super-resolve
-        mu0_new, _, _ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=0)
+        mu0, _, _ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=0)
         mu05, _, _ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=0.5)
         mu08, _, _ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=0.8)
         mu1, _, _ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=1.0)
@@ -122,7 +120,7 @@ def validate(srmodel, stmodel, val_loader, exp_name, logstep, args):
         plt.savefig(savedir + "mu_1_logstep_{}_valid.png".format(logstep), dpi=300)
 
         abs_err = torch.abs(mu1 - x_for)
-        grid_abs_error = torchvision.utils.make_grid(abs_err[0:9,:,:,:])
+        grid_abs_error = torchvision.utils.make_grid(abs_err[0:9,:,:,:].cpu())
         plt.figure()
         plt.imshow(grid_abs_error.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
         plt.axis('off')

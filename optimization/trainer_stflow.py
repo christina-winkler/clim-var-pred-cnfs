@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import torch.optim as optim
 import os
+import json
 
 # Utils
 from utils import utils
@@ -35,7 +36,7 @@ def trainer(args, train_loader, valid_loader, model,
     config_dict = vars(args)
     # wandb.init(project="arflow", config=config_dict)
     args.experiment_dir = os.path.join('runs',
-                                        args.modeltype + '_' + args.trainset  + datetime.now().strftime("_%Y_%m_%d_%H_%M_%S"))
+                                        args.modeltype + '_' + args.trainset + '_no_ds_'  + datetime.now().strftime("_%Y_%m_%d_%H_%M_%S"))
     # set viz dir
     viz_dir = "{}/snapshots/trainset/".format(args.experiment_dir)
     os.makedirs(viz_dir, exist_ok=True)
@@ -64,8 +65,11 @@ def trainer(args, train_loader, valid_loader, model,
     writer.add_hparams({'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.K,
                         'Levels':args.L}, {'nll_train': - np.inf})
 
-
-    # pdb.set_trace()
+    # write training configs to file
+    hparams = {'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.K, 'Levels':args.L, 's':args.s, 'ds': args.ds}
+    
+    with open(args.experiment_dir + '/configs.txt','w') as file:
+        file.write(json.dumps(hparams))
 
     if torch.cuda.device_count() > 1 and args.train:
         print("Running on {} GPUs!".format(torch.cuda.device_count()))
@@ -78,13 +82,8 @@ def trainer(args, train_loader, valid_loader, model,
             x = item[0].to(device)
 
             # split time series into lags and prediction window
-            x_past, x_for = x[:,:-1,...], x[:,-1,:,:,:].unsqueeze(1)
+            x_for, x_past = x[:,:, :1,...], x[:,:,1:,...]
 
-            # reshape into correct format [bsz, num_channels, seq_len, height, width]
-            x_past = x_past.permute(0,2,1,3,4).contiguous().float().to(device)
-            x_for = x_for.permute(0,2,1,3,4).contiguous().float().to(device)
-
-            # print(x_past.shape, x_for.shape)
             model.train()
             optimizer.zero_grad()
 

@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import torch.optim as optim
 import os
+import json 
 
-# Utils
+# utils
 from utils import utils
 import numpy as np
 import random
@@ -37,6 +38,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
     config_dict = vars(args)
     # wandb.init(project="arflow", config=config_dict)
+    print("With DOWNSCALING")
     args.experiment_dir = os.path.join('runs',
                                         args.modeltype + '_' + args.trainset  + datetime.now().strftime("_%Y_%m_%d_%H_%M_%S"))
     # set viz dir
@@ -74,7 +76,11 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
     # add hyperparameters to tensorboardX logger
     writer.add_hparams({'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.K,
                         'Levels':args.L}, {'nll_train': - np.inf})
-
+    # write training configs to file
+    hparams = {'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.K, 'Levels':args.L, 's':args.s, 'ds': args.ds}
+    
+    with open(args.experiment_dir + '/configs.txt','w') as file:
+        file.write(json.dumps(hparams))
     if torch.cuda.device_count() > 1 and args.train:
         print("Running on {} GPUs!".format(torch.cuda.device_count()))
         srmodel = torch.nn.DataParallel(srmodel)

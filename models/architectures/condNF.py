@@ -261,7 +261,7 @@ class FlowModel(nn.Module):
                                      eps=eps, use_stored=use_stored)
 
     def normalizing_flow(self, x, x_past, state=None):
-
+        
         logdet = torch.zeros_like(x[:, 0, 0, 0, 0])
         z=x
 

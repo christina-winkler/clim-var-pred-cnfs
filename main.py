@@ -96,6 +96,11 @@ def main(args):
                                       ckpt=ckpt)
 
         else:
+            model = condNF.FlowModel((in_channels, height, width),
+                                        args.filter_size, args.L, args.K, args.bsz,
+                                        args.lag_len, args.s, args.nb, args.device,
+                                        args.condch, args.nbits,
+                                        args.noscale, args.noscaletest).to(args.device)
 
             trainer_stflow.trainer(args=args, train_loader=train_loader,
                                     valid_loader=valid_loader,
@@ -159,7 +164,7 @@ if __name__ == "__main__":
                         help="learning rate")
     parser.add_argument("--filter_size", type=int, default=512//2,
                         help="filter size NN in Affine Coupling Layer")
-    parser.add_argument("--L", type=int, default=1, help="# of levels")
+    parser.add_argument("--L", type=int, default=3, help="# of levels")
     parser.add_argument("--K", type=int, default=2,
                         help="# of flow steps, i.e. model depth")
     parser.add_argument("--nb", type=int, default=16,
