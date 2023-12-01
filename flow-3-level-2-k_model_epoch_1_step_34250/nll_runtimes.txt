@@ -1,0 +1,3 @@
+Avrg NLL: -9592 
+Avrg fwd. runtime: 0.03 
+Avrg bw runtime: 0.03

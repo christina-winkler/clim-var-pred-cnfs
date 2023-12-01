@@ -4,6 +4,7 @@ import random
 
 import PIL
 import os
+import torch.nn.functional as F
 import torchvision
 from torchvision import transforms
 import matplotlib as mpl
@@ -395,7 +396,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
     nll_list=[]
     avrg_fwd_time = []
     avrg_bw_time = []
-    model.eval()
+
     color = 'inferno' if args.trainset == 'era5' else 'viridis'
     savedir = "{}_{}_{}_with_ds/snapshots/test_set_{}/".format(exp_name, srmodelname, stmodelname, args.trainset)
     os.makedirs(savedir, exist_ok=True)
@@ -405,9 +406,11 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
     with torch.no_grad():
         for batch_idx, item in enumerate(test_loader):
 
+            x = item[0].to(args.device)
+
             x_for, x_past = x[:,:, :1,...].squeeze(1), x[:,:,1:,...]
 
-            x_resh = F.interpolate(x[:,0,...], (16,32))
+            x_resh = F.interpolate(x[:,0,...], (x_for.shape[2]//args.s, x_for.shape[3]//args.s))
 
             # split time series into lags and prediction window
             x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,...].unsqueeze(1)
@@ -456,23 +459,24 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             print("Time Bwd pass / predicting:", stop - start)
             avrg_bw_time.append(stop - start)
 
-            # # create multiple rollouts with same initial conditions
-            # pred_multiroll = []
-            # abs_err_multiroll = []
+            # create multiple rollouts with same initial conditions
             nr_of_rollouts = 4
-            # for i in range(nr_of_rollouts):
-            #     pred, err = create_rollout(model, x, x_for, x_past, s, rollout_len)
-            #     pred_multiroll.append(pred.squeeze(1))
-            #     abs_err_multiroll.append(err.squeeze(1))
+            stacked_pred1, abs_err1 = create_rollout(stmodel, x, x_for_lr, x_past_lr, s, rollout_len)
+            stacked_pred2, abs_err2 = create_rollout(stmodel, x, x_for_lr, x_past_lr, s, rollout_len)
+            stacked_pred3, abs_err3 = create_rollout(stmodel, x, x_for_lr, x_past_lr, s, rollout_len)
+            stacked_pred4, abs_err4 = create_rollout(stmodel, x, x_for_lr, x_past_lr, s, rollout_len)
 
-            stacked_pred1, abs_err1 = create_rollout(model, x, x_for, x_past, s, rollout_len)
-            stacked_pred2, abs_err2 = create_rollout(model, x, x_for, x_past, s, rollout_len)
-            stacked_pred3, abs_err3 = create_rollout(model, x, x_for, x_past, s, rollout_len)
-            stacked_pred4, abs_err4 = create_rollout(model, x, x_for, x_past, s, rollout_len)
+            # super-resolve predictions
+            stacked_pred1, _,_ = srmodel(x_hr=x_for, xlr=stacked_pred1, eps=1.0, reverse=True)
+            stacked_pred2, _,_ = srmodel(x_hr=x_for, xlr=stacked_pred2, eps=1.0, reverse=True)
+            stacked_pred3, _,_ = srmodel(x_hr=x_for, xlr=stacked_pred3, eps=1.0, reverse=True)
+            stacked_pred4, _,_ = srmodel(x_hr=x_for, xlr=stacked_pred4, eps=1.0, reverse=True)
 
-            # TODO super-resolve stacked predictions
-            mu1, _,_ = srmodel(x_hr=stacked_pred1, xlr=x_for, eps=1.0, reverse=True)
-            # TODO compute absolute error of super-resolved predictions 
+            # compute absolute error of super-resolved predictions 
+            abs_err1 = torch.abs(stacked_pred1.cuda() - x_for[:,...].cuda())
+            abs_err2 = torch.abs(stacked_pred2.cuda() - x_for[:,...].cuda())
+            abs_err3 = torch.abs(stacked_pred3.cuda() - x_for[:,...].cuda())
+            abs_err4 = torch.abs(stacked_pred4.cuda() - x_for[:,...].cuda())
 
             std = (abs_err1 **2 + abs_err2**2 + abs_err3**2 + abs_err4**2)/4
 
@@ -483,21 +487,15 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             stack_abserr_multiroll = torch.stack((abs_err1,abs_err2,abs_err3,abs_err4),dim=0)
 
             # create single rollout
-            stacked_pred, abs_err = create_rollout(model, x, x_for, x_past, s, rollout_len)
+            # stacked_pred, abs_err = create_rollout(stmodel, x, x_for, x_past, s, rollout_len)
 
             # compute absolute difference among frames from multi rollout
 
             # Plot Multirollout Trajectories which started from same context window
             fig, axes = plt.subplots(nrows=nr_of_rollouts+1, ncols=rollout_len)
 
-            # single_pred = torchvision.utils.make_grid(stacked_pred[h-1,:,:,:].squeeze(1).cpu(), nrow=1)
-            # single_pred = single_pred[0,:,:].transpose(0,1)
-            # plt.imshow(single_pred, cmap=color, extent=[0,350,-80,85],
-                       # interpolation='none')
-
             fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5,1)
-            grid1 = torchvision.utils.make_grid(stack_pred_multiroll[0,:,...].cpu(), normalize=True, nrow=1)
-            # norm = ImageNormalize(grid1, interval=MinMaxInterval(), stretch=SqrtStretch())
+            grid1 = torchvision.utils.make_grid(stack_pred_multiroll[0,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
             ax1.imshow(grid1.permute(2,1,0)[:,:,0], cmap=color, interpolation='none')
             divider = make_axes_locatable(ax1)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -505,21 +503,22 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             cax.set_axis_off()
             ax1.axis('off')
 
-            grid2 = torchvision.utils.make_grid(stack_pred_multiroll[1,:,...].cpu(), normalize=True, nrow=1)
+            grid2 = torchvision.utils.make_grid(stack_pred_multiroll[1,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
             ax2.imshow(grid2.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax2)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cax.set_axis_off()
             ax2.axis('off')
 
-            grid3 = torchvision.utils.make_grid(stack_pred_multiroll[2,:,...].cpu(),normalize=True, nrow=1)
+            grid3 = torchvision.utils.make_grid(stack_pred_multiroll[2,:,...].permute(0,1,3,2).cpu(),normalize=True, nrow=1)
             ax3.imshow(grid3.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax3)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cax.set_axis_off()
             ax3.axis('off')
-
-            grid4 = torchvision.utils.make_grid(x_for.squeeze(1).cpu(),normalize=True, nrow=1)
+            
+            # pdb.set_trace()
+            grid4 = torchvision.utils.make_grid(x_for.permute(0,1,3,2).cpu(),normalize=True, nrow=1)
             ax4.set_title('Ground Truth', fontsize=5)
             ax4.imshow(grid4.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax4)
@@ -529,7 +528,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
 
             divider = make_axes_locatable(ax5)
             cax = divider.append_axes("right", size="2%", pad=0.05)
-            grid5 = torchvision.utils.make_grid(stack_pred_multiroll[4,:,...].cpu(), nrow=1)
+            grid5 = torchvision.utils.make_grid(stack_pred_multiroll[4,:,...].permute(0,1,3,2).cpu(), nrow=1)
             im5 = ax5.imshow(grid5.permute(2,1,0)[:,:,0], cmap=color)
             cbar = fig.colorbar(im5, cmap='inferno', cax=cax)
             cbar.ax.tick_params(labelsize=3)
@@ -543,113 +542,113 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             plt.close()
 
 
-            # Plot differences of rollout trajectories
-            # compare different frames from same rollout, should give a difference picture
-            test_diff = stack_pred_multiroll.squeeze(1)[0,1,0,...] - stack_pred_multiroll.squeeze(1)[0,2,0,...]
-            plt.figure()
-            plt.imshow(test_diff.unsqueeze(2).cpu().numpy(), cmap=color)
-            plt.axis('off')
-            plt.title("test diff 0")
-            plt.savefig(savedir + "tesdiff1_mu_{}_logstep_{}_test.png".format(eps, batch_idx), dpi=300)
-            plt.close()
-
-            # compare same prediction time step from different rollouts
-            test_diff = stack_pred_multiroll.squeeze(1)[0,1,0,...] - stack_pred_multiroll.squeeze(1)[2,1,0,...]
-            plt.figure()
-            plt.imshow(test_diff.unsqueeze(2).cpu().numpy(), cmap=color)
-            plt.axis('off')
-            plt.title("test diff 1")
-            # plt.show()
-            plt.savefig(savedir + "tesdiff2_mu_{}_logstep_{}_test.png".format(eps, batch_idx), dpi=300)
-            plt.close()
-
-            # pdb.set_trace()
-            grid_ground_truth = torchvision.utils.make_grid(x_for[0:6, :, :, :].squeeze(1).cpu(), normalize=True, nrow=1)
-            plt.figure()
-            plt.imshow(grid_ground_truth.permute(2, 1, 0)[:,:,0].contiguous(), cmap=color)
-            plt.axis('off')
-            plt.title("Ground Truth at t (test)")
-            plt.savefig(savedir + "gt_x_t+1_step_{}_test.png".format(batch_idx), dpi=300)
-            plt.close()
-
-            # visualize past frames the prediction is based on (context)
-            grid_past = torchvision.utils.make_grid(x_past[0:6, -1, :, :].cpu(), normalize=True, nrow=1)
-            plt.figure()
-            plt.imshow(grid_past.permute(2, 1, 0)[:,:,0].contiguous(), cmap=color)
-            plt.axis('off')
-            plt.title("Context window (test)")
-            plt.savefig(savedir + "context_step_{}_test.png".format(batch_idx), dpi=300)
-            plt.close()
-
-            grid_predictions = torchvision.utils.make_grid(stacked_pred[0:6,:,:,:].cpu(), normalize=True, nrow=1)
-            plt.figure()
-            plt.imshow(grid_predictions.permute(2, 1, 0)[:,:,0], cmap=color)
-            plt.axis('off')
-            # plt.title("Prediction at t (test), mu={}".format(eps))
-            plt.tight_layout()
-            plt.savefig(savedir + "prediction_mu_{}_logstep_{}_test.png".format(eps, batch_idx), dpi=300)
-            plt.close()
-
-            grid_abs_error = torchvision.utils.make_grid(abs_err[0:6,:,:,:].cpu(), nrow=1)
-            plt.figure()
-            plt.imshow(grid_abs_error.permute(2, 1, 0)[:,:,0], cmap=color)
-            plt.axis('off')
-            # plt.title("Absolute Error (test)")
-            plt.tight_layout()
-            plt.savefig(savedir + "absolute_error_logstep_{}_test.png".format(batch_idx), dpi=300)
-            plt.close()
-
-            # visualize single prediction
-            plt.figure()
-            h = 1
-            single_pred = torchvision.utils.make_grid(stacked_pred[h-1,:,:,:].squeeze(1).cpu(), normalize=True, nrow=1)
-            single_pred = single_pred[0,:,:].transpose(0,1)
-
-            # https://jakevdp.github.io/PythonDataScienceHandbook/04.06-customizing-legends.html
-            # https://stackoverflow.com/questions/18696122/change-values-on-matplotlib-imshow-graph-axis
-            # rotated_pred = ndimage.rotate(single_pred, 90)
-            # pdb.set_trace()
-            plt.imshow(single_pred, cmap=color, extent=[0,350,-80,85],
-                       interpolation='none')
-            plt.colorbar(label=r'Geopotential [$m^2 s^{-2}$]', shrink=0.6)
-            plt.xlabel('longitude')
-            # plt.axes(projection=ccrs.Orthographic(central_longitude=20, central_latitude=40))
-            # plt.xlim([0, 350])
-            # plt.xticks(np.arange(0,350,50))
-            plt.ylabel('latitude')
-            # plt.ylim([-80, 80])
-            # plt.axis('off')
-            plt.title(r"Prediction at t={}h ahead, mu={}".format(h, eps))
-            plt.savefig(savedir + "single_prediction_mu_{}_logstep_{}_test.png".format(eps, batch_idx), dpi=300)
-
-            # plt.show()
-
-            # grid_mu08 = torchvision.utils.make_grid(mu08[0:9,:,:,:].squeeze(1).cpu(), nrow=3)
+            # # Plot differences of rollout trajectories
+            # # compare different frames from same rollout, should give a difference picture
+            # test_diff = stack_pred_multiroll.squeeze(1)[0,1,0,...] - stack_pred_multiroll.squeeze(1)[0,2,0,...]
             # plt.figure()
-            # plt.imshow(grid_mu08.permute(1, 2, 0)[:,:,0].contiguous(), cmap='virdis')
+            # plt.imshow(test_diff.unsqueeze(2).cpu().numpy(), cmap=color)
             # plt.axis('off')
-            # plt.title("Prediction at t (test), mu=0.8")
-            # plt.savefig(savedir + "mu_0.8_logstep_{}_test.png".format(logstep), dpi=300)
-            #
-            # grid_mu1 = torchvision.utils.make_grid(mu1[0:9,:,:,:].squeeze(1).cpu(), nrow=3)
+            # plt.title("test diff 0")
+            # plt.savefig(savedir + "tesdiff1_mu_{}_logstep_{}_test.png".format(eps, batch_idx), dpi=300)
+            # plt.close()
+
+            # # compare same prediction time step from different rollouts
+            # test_diff = stack_pred_multiroll.squeeze(1)[0,1,0,...] - stack_pred_multiroll.squeeze(1)[2,1,0,...]
             # plt.figure()
-            # plt.imshow(grid_mu1.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+            # plt.imshow(test_diff.unsqueeze(2).cpu().numpy(), cmap=color)
             # plt.axis('off')
-            # plt.title("Prediction at t (test), mu=1.0")
-            # plt.savefig(savedir + "mu_1_logstep_{}_test.png".format(logstep), dpi=300)
-            plt.close()
+            # plt.title("test diff 1")
+            # # plt.show()
+            # plt.savefig(savedir + "tesdiff2_mu_{}_logstep_{}_test.png".format(eps, batch_idx), dpi=300)
+            # plt.close()
+
+            # # pdb.set_trace()
+            # grid_ground_truth = torchvision.utils.make_grid(x_for[0:6, :, :, :].squeeze(1).cpu(), normalize=True, nrow=1)
+            # plt.figure()
+            # plt.imshow(grid_ground_truth.permute(2, 1, 0)[:,:,0].contiguous(), cmap=color)
+            # plt.axis('off')
+            # plt.title("Ground Truth at t (test)")
+            # plt.savefig(savedir + "gt_x_t+1_step_{}_test.png".format(batch_idx), dpi=300)
+            # plt.close()
+
+            # # visualize past frames the prediction is based on (context)
+            # grid_past = torchvision.utils.make_grid(x_past[0:6, -1, :, :].cpu(), normalize=True, nrow=1)
+            # plt.figure()
+            # plt.imshow(grid_past.permute(2, 1, 0)[:,:,0].contiguous(), cmap=color)
+            # plt.axis('off')
+            # plt.title("Context window (test)")
+            # plt.savefig(savedir + "context_step_{}_test.png".format(batch_idx), dpi=300)
+            # plt.close()
+
+            # grid_predictions = torchvision.utils.make_grid(stacked_pred[0:6,:,:,:].cpu(), normalize=True, nrow=1)
+            # plt.figure()
+            # plt.imshow(grid_predictions.permute(2, 1, 0)[:,:,0], cmap=color)
+            # plt.axis('off')
+            # # plt.title("Prediction at t (test), mu={}".format(eps))
+            # plt.tight_layout()
+            # plt.savefig(savedir + "prediction_mu_{}_logstep_{}_test.png".format(eps, batch_idx), dpi=300)
+            # plt.close()
+
+            # # grid_abs_error = torchvision.utils.make_grid(abs_err[0:6,:,:,:].cpu(), nrow=1)
+            # # plt.figure()
+            # # plt.imshow(grid_abs_error.permute(2, 1, 0)[:,:,0], cmap=color)
+            # # plt.axis('off')
+            # # # plt.title("Absolute Error (test)")
+            # # plt.tight_layout()
+            # # plt.savefig(savedir + "absolute_error_logstep_{}_test.png".format(batch_idx), dpi=300)
+            # # plt.close()
+
+            # # # visualize single prediction
+            # # plt.figure()
+            # # h = 1
+            # # single_pred = torchvision.utils.make_grid(stacked_pred[h-1,:,:,:].squeeze(1).cpu(), normalize=True, nrow=1)
+            # # single_pred = single_pred[0,:,:].transpose(0,1)
+
+            # # https://jakevdp.github.io/PythonDataScienceHandbook/04.06-customizing-legends.html
+            # # https://stackoverflow.com/questions/18696122/change-values-on-matplotlib-imshow-graph-axis
+            # # rotated_pred = ndimage.rotate(single_pred, 90)
+            # # pdb.set_trace()
+            # # plt.imshow(single_pred, cmap=color, extent=[0,350,-80,85],
+            # #            interpolation='none')
+            # # plt.colorbar(label=r'Geopotential [$m^2 s^{-2}$]', shrink=0.6)
+            # # plt.xlabel('longitude')
+            # # # plt.axes(projection=ccrs.Orthographic(central_longitude=20, central_latitude=40))
+            # # # plt.xlim([0, 350])
+            # # # plt.xticks(np.arange(0,350,50))
+            # # plt.ylabel('latitude')
+            # # # plt.ylim([-80, 80])
+            # # # plt.axis('off')
+            # # plt.title(r"Prediction at t={}h ahead, mu={}".format(h, eps))
+            # # plt.savefig(savedir + "single_prediction_mu_{}_logstep_{}_test.png".format(eps, batch_idx), dpi=300)
+
+            # # plt.show()
+
+            # # grid_mu08 = torchvision.utils.make_grid(mu08[0:9,:,:,:].squeeze(1).cpu(), nrow=3)
+            # # plt.figure()
+            # # plt.imshow(grid_mu08.permute(1, 2, 0)[:,:,0].contiguous(), cmap='virdis')
+            # # plt.axis('off')
+            # # plt.title("Prediction at t (test), mu=0.8")
+            # # plt.savefig(savedir + "mu_0.8_logstep_{}_test.png".format(logstep), dpi=300)
+            # #
+            # # grid_mu1 = torchvision.utils.make_grid(mu1[0:9,:,:,:].squeeze(1).cpu(), nrow=3)
+            # # plt.figure()
+            # # plt.imshow(grid_mu1.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+            # # plt.axis('off')
+            # # plt.title("Prediction at t (test), mu=1.0")
+            # # plt.savefig(savedir + "mu_1_logstep_{}_test.png".format(logstep), dpi=300)
+            # plt.close()
 
             # write results to file:
-            with open('{}_{}/nll_runtimes.txt'.format(exp_name, modelname),'w') as f:
-                f.write('Avrg NLL: %d \n'% np.mean(nll_list))
-                f.write('Avrg fwd. runtime: %.2f \n'% np.mean(avrg_fwd_time))
-                f.write('Avrg bw runtime: %.2f'% np.mean(avrg_bw_time))
+            # with open('{}_{}/nll_runtimes.txt'.format(exp_name, srmodelname),'w') as f:
+            #     f.write('Avrg NLL: %d \n'% np.mean(nll_list))
+            #     f.write('Avrg fwd. runtime: %.2f \n'% np.mean(avrg_fwd_time))
+            #     f.write('Avrg bw runtime: %.2f'% np.mean(avrg_bw_time))
 
-    print("Average Test Neg. Log Probability Mass:", np.mean(nll_list))
-    print("Average Fwd. runtime", np.mean(avrg_fwd_time))
-    print("Average Bw runtime:", np.mean(avrg_bw_time))
+    # print("Average Test Neg. Log Probability Mass:", np.mean(nll_list))
+    # print("Average Fwd. runtime", np.mean(avrg_fwd_time))
+    # print("Average Bw runtime:", np.mean(avrg_bw_time))
 
-    return np.mean(nll_list)
+    return None #np.mean(nll_list)
 
 def metrics_eval(args, model, test_loader, exp_name, modelname, logstep):
     """
@@ -924,30 +923,36 @@ if __name__ == "__main__":
 
         # load model
         # with downscaling
-        srmodelname = 'model_epoch_0_step_250'
-        srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_11_29_11_53_17/srmodel_checkpoints/{}.tar'.format(srmodelname)
+        srmodelname = 'model_epoch_0_step_10750'
+        srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_01_06_35_06/srmodel_checkpoints/{}.tar'.format(srmodelname)
 
-        srmodel = srflow.SRFlow((in_channels, height, width), args.filter_size, args.Lsr, args.Lst,
-                                  args.bsz, args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
+        srmodel = srflow.SRFlow((in_channels, height, width), args.filter_size, 3, 2,
+                                  args.bsz, args.s, args.nb, args.condch, args.nbits, 
+                                  args.noscale, args.noscaletest).to(args.device)
                                   
         srckpt = torch.load(srmodelpath, map_location='cuda:0')
         srmodel.load_state_dict(srckpt['model_state_dict'])
         srmodel.eval()
 
-        stmodelname = 'model_epoch_2_step_42750'
-        stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_11_27_10_03_19/stmodel_checkpoints/{}.tar'.format(stmodelname)
-        stmodel = condNF.FlowModel((in_channels, height, width),
+        stmodelname = 'model_epoch_0_step_10750'
+        stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_01_06_35_06/stmodel_checkpoints/{}.tar'.format(stmodelname)
+        stmodel = condNF.FlowModel((in_channels, height//args.s, width//args.s),
                                 args.filter_size, args.Lst, args.Kst, args.bsz,
                                 args.lag_len, args.s, args.nb, args.device,
                                 args.condch, args.nbits,
-                                args.noscale, args.noscaletest, args.testmode)
+                                args.noscale, args.noscaletest, args.testmode).to(args.device)
 
         stckpt = torch.load(stmodelpath, map_location='cuda:0')
         stmodel.load_state_dict(stckpt['model_state_dict'])
         stmodel.eval()
 
-        print("Evaluate on test split ...")
-        test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelname, logstep, args)
+        srparams = sum(x.numel() for x in srmodel.parameters() if x.requires_grad)
+        stparams = sum(x.numel() for x in stmodel.parameters() if x.requires_grad)
+        params = srparams + stparams
+        print('Nr of Trainable Params {}:  '.format(args.device), params)
+
+        print("Evaluate on test split with DS ...")
+        test_with_ds(srmodel, stmodel, test_loader, "flow-{}-level-{}-k".format(args.Lst, args.Kst), srmodelname, stmodelname, -999999999, args)
 
     else:
         # no downscaling
@@ -966,7 +971,6 @@ if __name__ == "__main__":
 
         params = sum(x.numel() for x in model.parameters() if x.requires_grad)
         print('Nr of Trainable Params {}:  '.format(args.device), params)
-
         print("Evaluate on test split ...")
         test(model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.Lst, args.Kst), modelname, -99999, args)
         # metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
