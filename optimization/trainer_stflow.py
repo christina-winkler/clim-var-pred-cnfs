@@ -61,12 +61,9 @@ def trainer(args, train_loader, valid_loader, model,
     params = sum(x.numel() for x in model.parameters() if x.requires_grad)
     print('Nr of Trainable Params on {}:  '.format(device), params)
 
-    # add hyperparameters to tensorboardX logger
-    writer.add_hparams({'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.K,
-                        'Levels':args.L}, {'nll_train': - np.inf})
 
     # write training configs to file
-    hparams = {'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.K, 'Levels':args.L, 's':args.s, 'ds': args.ds}
+    hparams = {'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.Ksr, 'Levels':args.Lsr, 's':args.s, 'ds': args.ds}
     
     with open(args.experiment_dir + '/configs.txt','w') as file:
         file.write(json.dumps(hparams))

@@ -30,7 +30,7 @@ import argparse
 import timeit
 import pdb
 
-from models.architectures import condNF
+from models.architectures import condNF, srflow
 from utils import metrics, wasserstein
 from geomloss import SamplesLoss
 from operator import add
@@ -89,8 +89,11 @@ parser.add_argument("--lr", type=float, default=0.0002,
                         help="learning rate")
 parser.add_argument("--filter_size", type=int, default=512//2,
                         help="filter size NN in Affine Coupling Layer")
-parser.add_argument("--L", type=int, default=3, help="# of levels")
-parser.add_argument("--K", type=int, default=2,
+parser.add_argument("--Lst", type=int, default=3, help="# of levels")
+parser.add_argument("--Kst", type=int, default=2,
+                        help="# of flow steps, i.e. model depth")
+parser.add_argument("--Lsr", type=int, default=3, help="# of levels")
+parser.add_argument("--Ksr", type=int, default=2,
                         help="# of flow steps, i.e. model depth")
 parser.add_argument("--nb", type=int, default=16,
                         help="# of residual-in-residual blocks LR network.")
@@ -149,14 +152,11 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
     with torch.no_grad():
         for batch_idx, item in enumerate(test_loader):
 
-            x = item[0]
+            x = item[0].to(args.device)
             time, lat, lon = item[1], item[2], item[3]
 
             # split time series into lags and prediction window
-            x_past, x_for = x[:,:-1,...], x[:,-1,:,:,:].unsqueeze(1)
-
-            x_past = x_past.permute(0,2,1,3,4).contiguous().float()
-            x_for = x_for.permute(0,2,1,3,4).contiguous().float()
+            x_for, x_past = x[:,:, :1,...], x[:,:,1:,...]
 
             start = timeit.default_timer()
             z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
@@ -217,8 +217,9 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
             # compute absolute difference among frames from multi rollout
 
-            # Plot Multirollout Trajectories which started from same context window
+            # plot multirollout Trajectories which started from same context window
             fig, axes = plt.subplots(nrows=nr_of_rollouts+1, ncols=rollout_len)
+            fig.tight_layout()
 
             # single_pred = torchvision.utils.make_grid(stacked_pred[h-1,:,:,:].squeeze(1).cpu(), nrow=1)
             # single_pred = single_pred[0,:,:].transpose(0,1)
@@ -226,8 +227,8 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
                        # interpolation='none')
 
             fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5,1)
-            grid1 = torchvision.utils.make_grid(stack_pred_multiroll[0,:,...].cpu(), normalize=True, nrow=1)
-            # norm = ImageNormalize(grid1, interval=MinMaxInterval(), stretch=SqrtStretch())
+
+            grid1 = torchvision.utils.make_grid(stack_pred_multiroll[0,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
             ax1.imshow(grid1.permute(2,1,0)[:,:,0], cmap=color, interpolation='none')
             divider = make_axes_locatable(ax1)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -235,21 +236,21 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
             cax.set_axis_off()
             ax1.axis('off')
 
-            grid2 = torchvision.utils.make_grid(stack_pred_multiroll[1,:,...].cpu(), normalize=True, nrow=1)
+            grid2 = torchvision.utils.make_grid(stack_pred_multiroll[1,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
             ax2.imshow(grid2.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax2)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cax.set_axis_off()
             ax2.axis('off')
 
-            grid3 = torchvision.utils.make_grid(stack_pred_multiroll[2,:,...].cpu(),normalize=True, nrow=1)
+            grid3 = torchvision.utils.make_grid(stack_pred_multiroll[2,:,...].permute(0,1,3,2).cpu(),normalize=True, nrow=1)
             ax3.imshow(grid3.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax3)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cax.set_axis_off()
             ax3.axis('off')
 
-            grid4 = torchvision.utils.make_grid(x_for.squeeze(1).cpu(),normalize=True, nrow=1)
+            grid4 = torchvision.utils.make_grid(x_for.squeeze(1).permute(0,1,3,2).cpu(),normalize=True, nrow=1)
             ax4.set_title('Ground Truth', fontsize=5)
             ax4.imshow(grid4.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax4)
@@ -258,8 +259,8 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
             ax4.axis('off')
 
             divider = make_axes_locatable(ax5)
-            cax = divider.append_axes("right", size="2%", pad=0.05)
-            grid5 = torchvision.utils.make_grid(stack_pred_multiroll[4,:,...].cpu(), nrow=1)
+            cax = divider.append_axes("right", size="0.8%", pad=0.05)
+            grid5 = torchvision.utils.make_grid(stack_pred_multiroll[4,:,...].permute(0,1,3,2).cpu(), nrow=1)
             im5 = ax5.imshow(grid5.permute(2,1,0)[:,:,0], cmap=color)
             cbar = fig.colorbar(im5, cmap='inferno', cax=cax)
             cbar.ax.tick_params(labelsize=3)
@@ -381,7 +382,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
     return np.mean(nll_list)
 
-def test_with_ds(srmodel, stmodel, test_loader, exp_name, modelname, logstep, args):
+def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelname, logstep, args):
 
     # random.seed(0)
     # torch.manual_seed(0)
@@ -396,29 +397,40 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, modelname, logstep, ar
     avrg_bw_time = []
     model.eval()
     color = 'inferno' if args.trainset == 'era5' else 'viridis'
-    savedir = "{}_{}/snapshots/test_set_{}/".format(exp_name, modelname, args.trainset)
+    savedir = "{}_{}_{}_with_ds/snapshots/test_set_{}/".format(exp_name, srmodelname, stmodelname, args.trainset)
     os.makedirs(savedir, exist_ok=True)
 
+    srmodel.eval()
+    stmodel.eval()
     with torch.no_grad():
         for batch_idx, item in enumerate(test_loader):
 
-            x = item[0]
-            time, lat, lon = item[1], item[2], item[3]
+            x_for, x_past = x[:,:, :1,...].squeeze(1), x[:,:,1:,...]
+
+            x_resh = F.interpolate(x[:,0,...], (16,32))
 
             # split time series into lags and prediction window
-            x_past, x_for = x[:,:-1,...], x[:,-1,:,:,:].unsqueeze(1)
+            x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,...].unsqueeze(1)
 
-            x_past = x_past.permute(0,2,1,3,4).contiguous().float()
-            x_for = x_for.permute(0,2,1,3,4).contiguous().float()
-
+            # reshape into correct format [bsz, num_channels, seq_len, height, width]
+            x_past_lr = x_past_lr.unsqueeze(1).contiguous().float()
+            x_for_lr = x_for_lr.unsqueeze(1).contiguous().float()
+            
             start = timeit.default_timer()
-            z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
+
+            # run forecasting method
+            z, state, nll_st = stmodel.forward(x=x_for_lr, x_past=x_past_lr, state=state)
+
+            # run SR model
+            x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
+            z, nll_sr = srmodel.forward(x_hr=x_for, xlr=x_for_hat_lr.squeeze(1))
+
             stop = timeit.default_timer()
             print("Time Fwd pass:", stop-start)
             avrg_fwd_time.append(stop-start)
 
             # Generative loss
-            nll_list.append(nll.mean().detach().cpu().numpy())
+            nll_list.append(nll_st.mean().detach().cpu().numpy())
 
             # ---------------------- Evaluate Predictions---------------------- #
 
@@ -432,11 +444,12 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, modelname, logstep, ar
             rollout_len = args.bsz - 1
             eps = 0.8
             predictions = []
-
             start = timeit.default_timer()
-            past = x_past[0,:,:,:,:].unsqueeze(0)
-            x, s = model._predict(x_past=past,
-                                  state=None, eps=eps)
+            past = x_past_lr[0,:,:,:,:].unsqueeze(0) 
+
+            x, s = stmodel._predict(x_past=past,  
+                                    state=None, 
+                                    eps=eps)
 
             stop = timeit.default_timer()
 
@@ -456,6 +469,10 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, modelname, logstep, ar
             stacked_pred2, abs_err2 = create_rollout(model, x, x_for, x_past, s, rollout_len)
             stacked_pred3, abs_err3 = create_rollout(model, x, x_for, x_past, s, rollout_len)
             stacked_pred4, abs_err4 = create_rollout(model, x, x_for, x_past, s, rollout_len)
+
+            # TODO super-resolve stacked predictions
+            mu1, _,_ = srmodel(x_hr=stacked_pred1, xlr=x_for, eps=1.0, reverse=True)
+            # TODO compute absolute error of super-resolved predictions 
 
             std = (abs_err1 **2 + abs_err2**2 + abs_err3**2 + abs_err4**2)/4
 
@@ -903,33 +920,54 @@ if __name__ == "__main__":
 
     args.device = "cuda"
 
-    # Load Model
-    # with downscaling
-    # srmodelname = 'model_epoch_1_step_25750'
-    # srmodelpath = os.getcwd() + '/experiments/flow-3-level-4-k/models/{}.tar'.format(modelname)
-    # stmodelname = 'model_epoch_1_step_25750'
-    # stmodelpath = os.getcwd() + '/experiments/flow-3-level-4-k/models/{}.tar'.format(modelname)
+    if args.ds:
 
-    # no downscaling
-    modelname = 'model_epoch_0_step_1500'
-    modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_no_ds__2023_11_28_06_29_14/model_checkpoints/{}.tar'.format(modelname)
+        # load model
+        # with downscaling
+        srmodelname = 'model_epoch_0_step_250'
+        srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_11_29_11_53_17/srmodel_checkpoints/{}.tar'.format(srmodelname)
 
-    model = condNF.FlowModel((in_channels, height, width),
-                              args.filter_size, args.L, args.K, args.bsz,
-                              args.lag_len, args.s, args.nb, args.device,
-                              args.condch, args.nbits,
-                              args.noscale, args.noscaletest, args.testmode)
+        srmodel = srflow.SRFlow((in_channels, height, width), args.filter_size, args.Lsr, args.Lst,
+                                  args.bsz, args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
+                                  
+        srckpt = torch.load(srmodelpath, map_location='cuda:0')
+        srmodel.load_state_dict(srckpt['model_state_dict'])
+        srmodel.eval()
 
-    print(torch.cuda.device_count())
-    pdb.set_trace()
-    ckpt = torch.load(modelpath, map_location='cuda:0')
-    model.load_state_dict(ckpt['model_state_dict'])
-    model.eval()
+        stmodelname = 'model_epoch_2_step_42750'
+        stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_11_27_10_03_19/stmodel_checkpoints/{}.tar'.format(stmodelname)
+        stmodel = condNF.FlowModel((in_channels, height, width),
+                                args.filter_size, args.Lst, args.Kst, args.bsz,
+                                args.lag_len, args.s, args.nb, args.device,
+                                args.condch, args.nbits,
+                                args.noscale, args.noscaletest, args.testmode)
 
-    params = sum(x.numel() for x in model.parameters() if x.requires_grad)
-    print('Nr of Trainable Params {}:  '.format(args.device), params)
+        stckpt = torch.load(stmodelpath, map_location='cuda:0')
+        stmodel.load_state_dict(stckpt['model_state_dict'])
+        stmodel.eval()
 
-    print("Evaluate on test split ...")
-    test(model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999, args)
-    # metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
-    # metrics_eval_all()
+        print("Evaluate on test split ...")
+        test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelname, logstep, args)
+
+    else:
+        # no downscaling
+        modelname = 'model_epoch_1_step_34250'
+        modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_no_ds__2023_11_28_06_29_14/model_checkpoints/{}.tar'.format(modelname)
+
+        model = condNF.FlowModel((in_channels, height, width),
+                                args.filter_size, args.Lst, args.Kst, args.bsz,
+                                args.lag_len, args.s, args.nb, args.device,
+                                args.condch, args.nbits,
+                                args.noscale, args.noscaletest, args.testmode)
+
+        ckpt = torch.load(modelpath, map_location='cuda:0')
+        model.load_state_dict(ckpt['model_state_dict'])
+        model.eval()
+
+        params = sum(x.numel() for x in model.parameters() if x.requires_grad)
+        print('Nr of Trainable Params {}:  '.format(args.device), params)
+
+        print("Evaluate on test split ...")
+        test(model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.Lst, args.Kst), modelname, -99999, args)
+        # metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
+        # metrics_eval_all()

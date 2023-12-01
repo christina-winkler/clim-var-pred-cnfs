@@ -73,11 +73,9 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
     params = sum(x.numel() for x in srmodel.parameters() if x.requires_grad)
     print('Nr of Trainable Params on {}:  '.format(device), params)
 
-    # add hyperparameters to tensorboardX logger
-    writer.add_hparams({'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.K,
-                        'Levels':args.L}, {'nll_train': - np.inf})
     # write training configs to file
-    hparams = {'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.K, 'Levels':args.L, 's':args.s, 'ds': args.ds}
+    hparams = {'lr': args.lr, 'bsize':args.bsz, 'Flow Steps SR':args.Ksr, 'Levels SR':args.Lsr, 
+                'Flow Steps ST': args.Kst, 'Levels ST':args.Lst,'s':args.s, 'ds': args.ds}
     
     with open(args.experiment_dir + '/configs.txt','w') as file:
         file.write(json.dumps(hparams))
@@ -93,7 +91,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
             x_for, x_past = x[:,:, :1,...].squeeze(1), x[:,:,1:,...]
 
-            x_resh = F.interpolate(x[:,0,...], (16,32))
+            x_resh = F.interpolate(x[:,0,...], (x_for.shape[2]//args.s,x_for.shape[3]//args.s))
 
             # split time series into lags and prediction window
             x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,...].unsqueeze(1)
@@ -120,11 +118,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
             # run forecasting method
             z, state, nll_st = stmodel.forward(x=x_for_lr, x_past=x_past_lr, state=state)
 
-            # writer.add_scalar("nll_train", nll.mean().item(), step)
-            # wandb.log({"nll_train": nll.mean().item()}, step)
-
             # run SR model
-            # pdb.set_trace()
             x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
             z, nll_sr = srmodel.forward(x_hr=x_for, xlr=x_for_hat_lr.squeeze(1))
 

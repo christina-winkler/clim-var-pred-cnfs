@@ -83,6 +83,7 @@ class NormFlowNet(nn.Module):
         self.L = L
         self.K = K
         self.bsz = bsz
+        self.s = s
         C, H, W = input_shape
         self.lag_len = lag_len
         self.input_shape = input_shape

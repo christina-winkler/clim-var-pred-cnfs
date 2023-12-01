@@ -52,7 +52,7 @@ def main(args):
     # Build name of current model
     if args.modelname is None:
         args.modelname = "{}_{}_bsz{}_K{}_L{}_lr{:.4f}_s{}".format(
-            args.modeltype, args.trainset, args.bsz, args.K, args.L, args.lr, args.s
+            args.modeltype, args.trainset, args.bsz, args.Kst, args.Lst, args.lr, args.s
         )
 
     if args.train:
@@ -79,11 +79,11 @@ def main(args):
 
         if args.ds:
 
-            sr_model = srflow.SRFlow((in_channels, height, width), args.filter_size, args.L, args.K,
+            sr_model = srflow.SRFlow((in_channels, height, width), args.filter_size, args.Lsr, args.Ksr,
                                       args.bsz, args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
             
             st_model = condNF.FlowModel((in_channels, height//args.s, width//args.s),
-                                        args.filter_size, args.L, args.K, args.bsz,
+                                        args.filter_size, args.Lst, args.Kst, args.bsz,
                                         args.lag_len, args.s, args.nb, args.device,
                                         args.condch, args.nbits,
                                         args.noscale, args.noscaletest).to(args.device)
@@ -97,7 +97,7 @@ def main(args):
 
         else:
             model = condNF.FlowModel((in_channels, height, width),
-                                        args.filter_size, args.L, args.K, args.bsz,
+                                        args.filter_size, args.Lst, args.Kst, args.bsz,
                                         args.lag_len, args.s, args.nb, args.device,
                                         args.condch, args.nbits,
                                         args.noscale, args.noscaletest).to(args.device)
@@ -164,8 +164,11 @@ if __name__ == "__main__":
                         help="learning rate")
     parser.add_argument("--filter_size", type=int, default=512//2,
                         help="filter size NN in Affine Coupling Layer")
-    parser.add_argument("--L", type=int, default=3, help="# of levels")
-    parser.add_argument("--K", type=int, default=2,
+    parser.add_argument("--Lst", type=int, default=3, help="# of levels")
+    parser.add_argument("--Kst", type=int, default=2,
+                        help="# of flow steps, i.e. model depth")
+    parser.add_argument("--Lsr", type=int, default=3, help="# of levels")
+    parser.add_argument("--Ksr", type=int, default=2,
                         help="# of flow steps, i.e. model depth")
     parser.add_argument("--nb", type=int, default=16,
                         help="# of residual-in-residual blocks LR network.")

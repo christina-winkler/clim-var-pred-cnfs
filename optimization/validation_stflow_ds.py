@@ -36,7 +36,7 @@ def validate(srmodel, stmodel, val_loader, exp_name, logstep, args):
 
             x_for, x_past = x[:,:, :1,...].squeeze(1), x[:,:,1:,...]
 
-            x_resh = F.interpolate(x[:,0,...], (16,32)).to(args.device)
+            x_resh = F.interpolate(x[:,0,...], (x_for.shape[2]//args.s,x_for.shape[3]//args.s))
 
             # split time series into lags and prediction window
             x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,...].unsqueeze(1)
