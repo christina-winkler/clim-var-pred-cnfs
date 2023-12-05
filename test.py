@@ -138,6 +138,8 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
     nll_list=[]
     mae08 = []
     rmse08 = []
+    rmse08unorm = []
+    mae08unorm = []
     avrg_fwd_time = []
     avrg_bw_time = []
     model.eval()
@@ -146,6 +148,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
     os.makedirs(savedir, exist_ok=True)
     savedir_txt = 'experiments/{}_{}_{}_nods/'.format(exp_name, modelname, args.trainset)
     os.makedirs(savedir_txt, exist_ok=True)
+
     with torch.no_grad():
         for batch_idx, item in enumerate(test_loader):
 
@@ -268,31 +271,51 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
             # COMPUTE METRICS
             # MAE
-            mae08.append(metrics.MAE(inv_scaler(stacked_pred, min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
+            mae08.append(metrics.MAE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
+            mae08unorm.append(metrics.MAE(stack_pred_multiroll[2,...], x_for.squeeze(1)).detach().cpu().numpy())
 
             # RMSE
             rmse08.append(metrics.RMSE(inv_scaler(stacked_pred, min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
+            rmse08unorm.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
 
-            # write results to file:
-            with open('{}_{}/nll_runtimes.txt'.format(exp_name, modelname),'w') as f:
-                f.write('Avrg NLL: %d \n'% np.mean(nll_list))
-                f.write('Avrg fwd. runtime: %.2f \n'% np.mean(avrg_fwd_time))
-                f.write('Avrg bw runtime: %.2f'% np.mean(avrg_bw_time))
+            print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
 
-            print(rmse08[0], mae08[0])
+            if batch_idx == 100:
+                break
 
-            if batch_idx == 3:
-                 break
+    # write results to file:
+    with open(savedir_txt + 'nll_and_runtimes.txt','w') as f:
+        f.write('Avrg NLL: %d \n'% np.mean(nll_list))
+        f.write('Avrg fwd. runtime: %.2f \n'% np.mean(avrg_fwd_time))
+        f.write('Avrg bw runtime: %.2f'% np.mean(avrg_bw_time))
 
     with open(savedir_txt + 'metric_results.txt','w') as f:
 
-        f.write('MAE mu08:\n')
-        f.write("%f \n" %np.mean(mae08))
-        f.write("%f \n" %np.std(mae08))
+        f.write('Avrg MAE mu08:\n')
+        for item in np.mean(mae08, axis=0):
+            f.write("%f \n" % item)
 
-        f.write('RMSE mu08:\n')
-        f.write("%f \n" %np.mean(rmse08))
-        f.write("%f \n" %np.std(rmse08))
+        # f.write('STD MAE mu08:\n')
+        # for item in np.std(mae08, axis=0):
+        #     f.write("%f \n" % item)
+
+        f.write('Avrg RMSE mu08:\n')
+        for item in np.mean(rmse08, axis=0):
+            f.write("%f \n" % item)   
+
+        # f.write("%f \n" %np.std(rmse08, axis=0))
+
+        f.write('Norm Avrg MAE mu08:\n')
+        for item in np.mean(mae08unorm, axis=0):
+            f.write("%f \n" % item)
+
+        f.write('Norm Avrg RMSE mu08:\n')
+        for item in np.mean(rmse08unorm, axis=0):
+            f.write("%f \n" % item)       
+
+        # f.write("%f \n" %np.mean(mae08unorm, axis=0))
+        # f.write("%f \n" %np.std(mae08unorm, axis=0))
+        # f.write("%f \n" %np.std(rmse08unorm, axis=0))
 
     print("Average Test Neg. Log Probability Mass:", np.mean(nll_list))
     print("Average Fwd. runtime", np.mean(avrg_fwd_time))
@@ -401,7 +424,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             stack_pred_multiroll = torch.cat((stack_pred_multiroll, std), dim=0)
             stack_abserr_multiroll = torch.stack((abs_err1,abs_err2,abs_err3,abs_err4),dim=0)
 
-            # Plot Multirollout Trajectories which started from same context window
+            # Plot Multirollout trajectories which started from same context window
             fig, axes = plt.subplots(nrows=nr_of_rollouts+1, ncols=rollout_len)
 
             fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5,1)
@@ -762,8 +785,8 @@ if __name__ == "__main__":
 
     else:
         # no downscaling
-        modelname = 'model_epoch_2_step_41750'
-        modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_no_ds__2023_12_01_10_54_48/model_checkpoints/{}.tar'.format(modelname)
+        modelname = 'model_epoch_0_step_9500'
+        modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_no_ds__2023_12_05_05_51_46/model_checkpoints/{}.tar'.format(modelname)
 
         model = condNF.FlowModel((in_channels, height, width),
                                 args.filter_size, args.Lst, args.Kst, args.bsz,

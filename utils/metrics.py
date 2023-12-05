@@ -53,10 +53,9 @@ def psnr(im1, im2):
     return psnr
 
 def RMSE(yhat,y):
-    _,_,h,w=y.shape
     sq_diff = (yhat-y)**2
-    sum = sq_diff.sum(dim=[1,2,3])
-    return torch.sqrt(sum / (h*w)).mean()
+    mean = sq_diff.mean(dim=[1,2,3])
+    return torch.sqrt(mean)
 
 def MSE(y_hat, y):
     _,_,h,w=y.shape
@@ -65,8 +64,8 @@ def MSE(y_hat, y):
     return sum/(h*w)
 
 def MAE(y_hat, y):
-    mae = nn.L1Loss()
-    return mae(y_hat,y)
+    out = torch.abs(y_hat - y)
+    return out.mean((1,2,3))
 
 def nrmse(im1, im2):
     """
