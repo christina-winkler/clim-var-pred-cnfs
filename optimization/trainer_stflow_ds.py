@@ -89,9 +89,9 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
             x = item[0].to(args.device)
 
-            x_for, x_past = x[:,:, :1,...].squeeze(1), x[:,:,1:,...]
+            x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
 
-            x_resh = F.interpolate(x[:,0,...], (x_for.shape[2]//args.s,x_for.shape[3]//args.s))
+            x_resh = F.interpolate(x[:,0,...], (x_for.shape[3]//args.s,x_for.shape[4]//args.s))
 
             # split time series into lags and prediction window
             x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,...].unsqueeze(1)
@@ -120,7 +120,8 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
             # run SR model
             x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
-            z, nll_sr = srmodel.forward(x_hr=x_for, xlr=x_for_hat_lr.squeeze(1))
+            pdb.set_trace()
+            z, nll_sr = srmodel.forward(x_hr=x_for ,xlr=x_for_hat_lr.squeeze(1))
 
             # Compute gradients
             nll_sr.mean().backward()

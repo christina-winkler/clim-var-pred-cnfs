@@ -33,7 +33,7 @@ def validate(model, val_loader, exp_name, logstep, args):
             x = item[0].to(args.device)
 
             # split time series into lags and prediction window
-            x_for, x_past = x[:,:, :1,...], x[:,:,1:,...]
+            x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
 
             z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
 

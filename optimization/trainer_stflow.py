@@ -79,7 +79,7 @@ def trainer(args, train_loader, valid_loader, model,
             x = item[0].to(device)
 
             # split time series into lags and prediction window
-            x_for, x_past = x[:,:, :1,...], x[:,:,1:,...]
+            x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
 
             model.train()
             optimizer.zero_grad()
@@ -94,7 +94,6 @@ def trainer(args, train_loader, valid_loader, model,
 
             z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
             writer.add_scalar("nll_train", nll.mean().item(), step)
-            # wandb.log({"nll_train": nll.mean().item()}, step)
 
             # Compute gradients
             nll.mean().backward()
@@ -155,7 +154,7 @@ def trainer(args, train_loader, valid_loader, model,
                     plt.axis('off')
                     plt.title("Context Frame at t-1 (train)")
                     plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
-                    #
+                    
                     # # visualize future frame of the correct prediction
                     grid_future = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
                     array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))

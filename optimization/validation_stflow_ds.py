@@ -34,7 +34,7 @@ def validate(srmodel, stmodel, val_loader, exp_name, logstep, args):
 
             x = item[0].to(args.device)
 
-            x_for, x_past = x[:,:, :1,...].squeeze(1), x[:,:,1:,...]
+            x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
 
             x_resh = F.interpolate(x[:,0,...], (x_for.shape[2]//args.s,x_for.shape[3]//args.s))
 

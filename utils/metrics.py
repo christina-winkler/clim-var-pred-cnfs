@@ -6,7 +6,7 @@ import torchvision
 import numpy as np
 import pdb
 import torch
-# import neuralnet_pytorch
+import torch.nn as nn
 
 def ssim(im1, im2):
     """
@@ -53,7 +53,20 @@ def psnr(im1, im2):
     return psnr
 
 def RMSE(yhat,y):
-    return torch.sqrt(torch.mean((yhat-y)**2,dim=[1,2,3]))
+    _,_,h,w=y.shape
+    sq_diff = (yhat-y)**2
+    sum = sq_diff.sum(dim=[1,2,3])
+    return torch.sqrt(sum / (h*w)).mean()
+
+def MSE(y_hat, y):
+    _,_,h,w=y.shape
+    diff = (y_hat - y)**2
+    sum = (diff).sum(dim=[1,2,3])
+    return sum/(h*w)
+
+def MAE(y_hat, y):
+    mae = nn.L1Loss()
+    return mae(y_hat,y)
 
 def nrmse(im1, im2):
     """

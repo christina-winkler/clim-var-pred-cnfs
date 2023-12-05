@@ -59,12 +59,13 @@ class WeatherBenchData(Dataset):
     def __getitem__(self, idx):
 
         x = self.data[idx:idx+self.window_size+1]
+        x_unorm = x.values
 
         time = np.array(x.coords['time'])
         latitude = np.array(x.coords['lat'])
         longitude = np.array(x.coords['lon'])
 
-        # normalize over each time-step, perhaps change this laters
+        # normalize over each time-step, perhaps change this later
         x_ = minmax_scaler(x) 
         
-        return self.transform(x_), str(time), latitude, longitude
+        return self.transform(x_), torch.FloatTensor(x_unorm), str(time), latitude, longitude
