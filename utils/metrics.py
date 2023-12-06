@@ -31,7 +31,6 @@ def ssim(im1, im2):
         ssim.append(calculate_ssim(im1[i, :, :, :] * 255, im2[i, :, :, :] * 255))
     return ssim
 
-
 def psnr(im1, im2):
     """
 

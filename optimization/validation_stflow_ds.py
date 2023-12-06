@@ -36,10 +36,10 @@ def validate(srmodel, stmodel, val_loader, exp_name, logstep, args):
 
             x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
 
-            x_resh = F.interpolate(x[:,0,...], (x_for.shape[2]//args.s,x_for.shape[3]//args.s))
+            x_resh = F.interpolate(x[:,0,...], (x_for.shape[3]//args.s,x_for.shape[4]//args.s))
 
             # split time series into lags and prediction window
-            x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,...].unsqueeze(1)
+            x_past_lr, x_for_lr =  x_resh[:,:2, ...].squeeze(1), x_resh[:,2:,...]
 
             # reshape into correct format for 3D convolutions - but now i dont use them anymore? xD
             x_past_lr = x_past_lr.unsqueeze(1).contiguous().float().to(args.device)
@@ -50,7 +50,7 @@ def validate(srmodel, stmodel, val_loader, exp_name, logstep, args):
 
             # run SR model
             x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
-            z, nll_sr = srmodel.forward(x_hr=x_for, xlr=x_for_hat_lr.squeeze(1))
+            z, nll_sr = srmodel.forward(x_hr=x_for.squeeze(1), xlr=x_for_hat_lr.squeeze(1))
 
             # Generative loss
             nll_list.append(nll_st.mean().detach().cpu().numpy())
@@ -119,7 +119,7 @@ def validate(srmodel, stmodel, val_loader, exp_name, logstep, args):
         plt.title("Prediction at t (valid), mu=1.0")
         plt.savefig(savedir + "mu_1_logstep_{}_valid.png".format(logstep), dpi=300)
 
-        abs_err = torch.abs(mu1 - x_for)
+        abs_err = torch.abs(mu1 - x_for.squeeze(1))
         grid_abs_error = torchvision.utils.make_grid(abs_err[0:9,:,:,:].cpu())
         plt.figure()
         plt.imshow(grid_abs_error.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)

@@ -222,47 +222,47 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
             fig, axes = plt.subplots(nrows=nr_of_rollouts+1, ncols=rollout_len)
             fig.tight_layout()
 
-            fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5,1)
+            fig, (ax1, ax2, ax3) = plt.subplots(3,1)
 
             grid1 = torchvision.utils.make_grid(stack_pred_multiroll[0,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
             ax1.imshow(grid1.permute(2,1,0)[:,:,0], cmap=color, interpolation='none')
             divider = make_axes_locatable(ax1)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            ax1.set_title('Simulated Rollout Trajectories', fontsize=5)
+            ax1.set_title('Simulated Rollout Trajectory', fontsize=15)
             cax.set_axis_off()
             ax1.axis('off')
 
-            grid2 = torchvision.utils.make_grid(stack_pred_multiroll[1,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
-            ax2.imshow(grid2.permute(2,1,0)[:,:,0], cmap=color)
+            # grid2 = torchvision.utils.make_grid(stack_pred_multiroll[1,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
+            # ax2.imshow(grid2.permute(2,1,0)[:,:,0], cmap=color)
+            # divider = make_axes_locatable(ax2)
+            # cax = divider.append_axes("right", size="5%", pad=0.05)
+            # cax.set_axis_off()
+            # ax2.axis('off')
+
+            # grid3 = torchvision.utils.make_grid(stack_pred_multiroll[2,:,...].permute(0,1,3,2).cpu(),normalize=True, nrow=1)
+            # ax3.imshow(grid3.permute(2,1,0)[:,:,0], cmap=color)
+            # divider = make_axes_locatable(ax3)
+            # cax = divider.append_axes("right", size="5%", pad=0.05)
+            # cax.set_axis_off()
+            # ax3.axis('off')
+
+            grid4 = torchvision.utils.make_grid(x_for.squeeze(1).permute(0,1,3,2).cpu(),normalize=True, nrow=1)
+            ax2.set_title('Ground Truth', fontsize=15)
+            ax2.imshow(grid4.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax2)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cax.set_axis_off()
             ax2.axis('off')
 
-            grid3 = torchvision.utils.make_grid(stack_pred_multiroll[2,:,...].permute(0,1,3,2).cpu(),normalize=True, nrow=1)
-            ax3.imshow(grid3.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax3)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cax.set_axis_off()
-            ax3.axis('off')
-
-            grid4 = torchvision.utils.make_grid(x_for.squeeze(1).permute(0,1,3,2).cpu(),normalize=True, nrow=1)
-            ax4.set_title('Ground Truth', fontsize=5)
-            ax4.imshow(grid4.permute(2,1,0)[:,:,0], cmap=color)
-            divider = make_axes_locatable(ax4)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cax.set_axis_off()
-            ax4.axis('off')
-
-            divider = make_axes_locatable(ax5)
             cax = divider.append_axes("right", size="0.8%", pad=0.05)
             grid5 = torchvision.utils.make_grid(stack_pred_multiroll[4,:,...].permute(0,1,3,2).cpu(), nrow=1)
-            im5 = ax5.imshow(grid5.permute(2,1,0)[:,:,0], cmap=color)
+            im5 = ax3.imshow(grid5.permute(2,1,0)[:,:,0], cmap=color)
             cbar = fig.colorbar(im5, cmap='inferno', cax=cax)
             cbar.ax.tick_params(labelsize=3)
             # cax.set_axis_off()
-            ax5.set_title('Std. Dev.', fontsize=5)
-            ax5.axis('off')
+            ax3.set_title('Std. Dev.', fontsize=15)
+            ax3.axis('off')
 
             plt.tight_layout()
             plt.savefig(savedir + '/std_multiplot_{}.png'.format(batch_idx), dpi=300, bbox_inches='tight')
@@ -275,7 +275,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
             mae08unorm.append(metrics.MAE(stack_pred_multiroll[2,...], x_for.squeeze(1)).detach().cpu().numpy())
 
             # RMSE
-            rmse08.append(metrics.RMSE(inv_scaler(stacked_pred, min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
+            rmse08.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
             rmse08unorm.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
 
             print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
@@ -330,8 +330,10 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
     avrg_fwd_time = []
     avrg_bw_time = []
 
-    mae08 =[]
+    mae08 = []
     rmse08 = []
+    rmse08unorm = []
+    mae08unorm = []
 
     color = 'inferno' if args.trainset == 'era5' else 'viridis'
     savedir = "experiments/{}_{}_{}_with_ds/snapshots/test_set/".format(exp_name, stmodelname, args.trainset)
@@ -425,49 +427,50 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             stack_abserr_multiroll = torch.stack((abs_err1,abs_err2,abs_err3,abs_err4),dim=0)
 
             # Plot Multirollout trajectories which started from same context window
-            fig, axes = plt.subplots(nrows=nr_of_rollouts+1, ncols=rollout_len)
+            fig, axes = plt.subplots(nrows=nr_of_rollouts+1, ncols=rollout_len, constrained_layout = True)
 
-            fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5,1)
+            fig, (ax1, ax2, ax3) = plt.subplots(3,1)
             grid1 = torchvision.utils.make_grid(stack_pred_multiroll[0,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
             ax1.imshow(grid1.permute(2,1,0)[:,:,0], cmap=color, interpolation='none')
             divider = make_axes_locatable(ax1)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            ax1.set_title('Simulated Rollout Trajectories', fontsize=5)
+            ax1.set_title('Simulated Rollout Trajectory', fontsize=15)
             cax.set_axis_off()
             ax1.axis('off')
 
-            grid2 = torchvision.utils.make_grid(stack_pred_multiroll[1,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
-            ax2.imshow(grid2.permute(2,1,0)[:,:,0], cmap=color)
+            # grid2 = torchvision.utils.make_grid(stack_pred_multiroll[1,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
+            # ax2.imshow(grid2.permute(2,1,0)[:,:,0], cmap=color)
+            # divider = make_axes_locatable(ax2)
+            # cax = divider.append_axes("right", size="5%", pad=0.05)
+            # cax.set_axis_off()
+            # ax2.axis('off')
+
+            # grid3 = torchvision.utils.make_grid(stack_pred_multiroll[2,:,...].permute(0,1,3,2).cpu(),normalize=True, nrow=1)
+            # ax3.imshow(grid3.permute(2,1,0)[:,:,0], cmap=color)
+            # divider = make_axes_locatable(ax3)
+            # cax = divider.append_axes("right", size="5%", pad=0.05)
+            # cax.set_axis_off()
+            # ax3.axis('off')
+            
+            grid4 = torchvision.utils.make_grid(x_for.squeeze(1).permute(0,1,3,2).cpu(),normalize=True, nrow=1)
+            ax2.set_title('Ground Truth', fontsize=15)
+            ax2.imshow(grid4.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax2)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cax.set_axis_off()
             ax2.axis('off')
 
-            grid3 = torchvision.utils.make_grid(stack_pred_multiroll[2,:,...].permute(0,1,3,2).cpu(),normalize=True, nrow=1)
-            ax3.imshow(grid3.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax3)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cax.set_axis_off()
-            ax3.axis('off')
-            
-            grid4 = torchvision.utils.make_grid(x_for.squeeze(1).permute(0,1,3,2).cpu(),normalize=True, nrow=1)
-            ax4.set_title('Ground Truth', fontsize=5)
-            ax4.imshow(grid4.permute(2,1,0)[:,:,0], cmap=color)
-            divider = make_axes_locatable(ax4)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cax.set_axis_off()
-            ax4.axis('off')
-
-            divider = make_axes_locatable(ax5)
             cax = divider.append_axes("right", size="2%", pad=0.05)
             grid5 = torchvision.utils.make_grid(stack_pred_multiroll[4,:,...].permute(0,1,3,2).cpu(), nrow=1)
-            im5 = ax5.imshow(grid5.permute(2,1,0)[:,:,0], cmap=color)
+            im5 = ax3.imshow(grid5.permute(2,1,0)[:,:,0], cmap=color)
             cbar = fig.colorbar(im5, cmap='inferno', cax=cax)
             cbar.ax.tick_params(labelsize=3)
             # cax.set_axis_off()
-            ax5.set_title('Std. Dev.', fontsize=5)
-            ax5.axis('off')
+            ax3.set_title('Std. Dev.', fontsize=15)
+            ax3.axis('off')
 
+            plt.show()
             plt.tight_layout()
             plt.savefig(savedir + '/std_multiplot_{}.png'.format(batch_idx), dpi=300, bbox_inches='tight')
             # plt.show()
@@ -476,26 +479,46 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             # COMPUTE METRICS
             # MAE
             mae08.append(metrics.MAE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
+            mae08unorm.append(metrics.MAE(stack_pred_multiroll[2,...], x_for.squeeze(1)).detach().cpu().numpy())
 
             # RMSE
             rmse08.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
+            rmse08unorm.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
 
-            print(rmse08[0], mae08[0])
+            print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
+     
+            if batch_idx == 100:
+                break
 
+    # write results to file:
+    with open(savedir_txt + 'nll_and_runtimes.txt','w') as f:
+        # f.write('Avrg NLL: %d \n'% np.mean(nll_list))
+        f.write('Avrg fwd. runtime: %.2f \n'% np.mean(avrg_fwd_time))
+        f.write('Avrg bw runtime: %.2f'% np.mean(avrg_bw_time))
 
-    # print("Average Test Neg. Log Probability Mass:", np.mean(nll_list))
-    # print("Average Fwd. runtime", np.mean(avrg_fwd_time))
-    # print("Average Bw runtime:", np.mean(avrg_bw_time))
-    # Write metric results to a file in case to recreate plots
     with open(savedir_txt + 'metric_results.txt','w') as f:
 
-        f.write('MAE mu08:\n')
-        f.write("%f \n" %np.mean(mae08))
-        f.write("%f \n" %np.std(mae08))
+        f.write('Avrg MAE mu08:\n')
+        for item in np.mean(mae08, axis=0):
+            f.write("%f \n" % item)
 
-        f.write('RMSE mu08:\n')
-        f.write("%f \n" %np.mean(rmse08))
-        f.write("%f \n" %np.std(rmse08))
+        # f.write('STD MAE mu08:\n')
+        # for item in np.std(mae08, axis=0):
+        #     f.write("%f \n" % item)
+
+        f.write('Avrg RMSE mu08:\n')
+        for item in np.mean(rmse08, axis=0):
+            f.write("%f \n" % item)   
+
+        # f.write("%f \n" %np.std(rmse08, axis=0))
+
+        f.write('Norm Avrg MAE mu08:\n')
+        for item in np.mean(mae08unorm, axis=0):
+            f.write("%f \n" % item)
+
+        f.write('Norm Avrg RMSE mu08:\n')
+        for item in np.mean(rmse08unorm, axis=0):
+            f.write("%f \n" % item)   
 
     return None #np.mean(nll_list)
 
@@ -653,15 +676,12 @@ def metrics_eval_all():
 
     print("Creating unified plot from text files ...")
 
-    # pdb.set_trace()
     path = os.getcwd() + '/experiments/'
 
     def read_metrics(fname):
 
-        ssim = []
-        psnr = []
         rmse = []
-        mmd = []
+        mae = []
         lines = []
 
         # read metric results from file
@@ -673,7 +693,7 @@ def metrics_eval_all():
                 print(line, end='')
                 line = f.readline()
 
-                if line == 'Avrg MMD over forecasting period:\n':
+                if line == 'Avrg RMSE mu08:\n':
                     rmse = lines
                     lines = []
 
@@ -684,21 +704,15 @@ def metrics_eval_all():
                     lines.append(float(line))
             mmd = lines
 
-        return rmse, mmd
+        return rmse, mae
 
-    # avrg_psnr_l1k8, avrg_ssim_l1k8 = read_metrics('metric_results_flow-1-level-8-k.txt')
-    # avrg_psnr_l2k4, avrg_ssim_l2k4 = read_metrics('metric_results_flow-2-level-4-k.txt')
-    # avrg_psnr_l3k4, avrg_ssim_l3k4 = read_metrics('metric_results_flow-3-level-4-k.txt')
-    # avrg_psnr_3dunet, avrg_ssim_3dunet = read_metrics('metric_results_3dunet.txt')
-    avrg_rmse_3dunet, avrg_mmd_3dunet = read_metrics('metric_results_wbench3dunet_30days.txt')
-    # avrg_rmse_l3k4, avrg_mmd_l3k4 = read_metrics('metric_results_30daysera5_flow.txt')
-    # avrg_rmse_l1k8, avrg_mmd_l1k8 = read_metrics('metric_results_flow_era5_1l8k.txt')
-    avrg_rmse_l3k3, avrg_mmd_l3k3 = read_metrics('metric_results_wbench_l3k3.txt')
+    avrg_rmse_nods, avrg_mae_nods = read_metrics('flow-3-level-2-k_model_epoch_1_step_25750_wbench_nods/metric_results.txt')
+    avrg_rmse_ds, avrg_mae_ds = read_metrics('flow-3-level-2-k_model_epoch_1_step_24000_wbench_with_ds/metric_results.txt')
 
-    plt.plot(avrg_rmse_l1k8, label='ST-Flow L-1 K-8', color='darkviolet')
-    plt.plot(avrg_rmse_l3k4, label='ST-Flow L-3 K-4', color='deeppink')
-    plt.plot(avrg_rmse_l3k3, label='ST-Flow L-3 K-3', color='mediumslateblue')
-    plt.plot(avrg_rmse_3dunet, label='3DUnet', color='lightseagreen')
+    plt.plot(avrg_rmse_nods, label='ST-Flow', color='darkviolet')
+    plt.plot(avrg_rmse_ds, label='ST-Flow + DS', color='deeppink')
+    # plt.plot(avrg_rmse_l3k3, label='ST-Flow L-3 K-3', color='mediumslateblue')
+    # plt.plot(avrg_rmse_3dunet, label='3DUnet', color='lightseagreen')
     plt.grid(axis='y')
     plt.axvline(x=2, color='orangered')
     plt.legend(loc='best')
@@ -706,30 +720,6 @@ def metrics_eval_all():
     plt.ylabel('Average RMSE')
     plt.show()
     plt.savefig(path + '/avrg_rmse_all_wbench.png', dpi=300)
-
-    # plt.plot(avrg_ssim_l1k8, label='ST-Flow L1-K-8 Best SSIM', color='darkviolet')
-    # plt.plot(avrg_ssim_l3k4, label='ST-Flow L3-K-4 Best SSIM', color='deeppink')
-    # plt.plot(avrg_ssim_l2k4, label='ST-Flow L2-K-4 Best SSIM', color='mediumslateblue')
-    # plt.plot(avrg_ssim_3dunet, label='3DUnet Best SSIM', color='lightseagreen')
-    # plt.grid(axis='y')
-    # plt.axvline(x=1, color='orangered')
-    # plt.legend(loc='upper right')
-    # plt.xlabel('Time-Step')
-    # plt.ylabel('Average SSIM')
-    # plt.savefig(path + '/avrg_ssim.png', dpi=300)
-    # plt.show()
-
-    # plt.plot(avrg_psnr_l1k8, label='ST-Flow L1-K-8 Best PSNR', color='darkviolet')
-    # plt.plot(avrg_psnr_l2k4, label='ST-Flow L2-K-4 Best PSNR', color='deeppink')
-    # plt.plot(avrg_psnr_l3k4, label='ST-Flow L3-K-4 Best PSNR', color='mediumslateblue')
-    # plt.plot(avrg_psnr_3dunet, label='3DUnet Best PNSR', color='lightseagreen')
-    # plt.grid(axis='y')
-    # plt.axvline(x=1, color='orangered')
-    # plt.legend(loc='upper right')
-    # plt.xlabel('Time-Step')
-    # plt.ylabel('Average PSNR')
-    # plt.savefig(path + '/avrg_psnr.png', dpi=300)
-    # plt.show()
 
     return None
 
@@ -747,12 +737,14 @@ if __name__ == "__main__":
 
     args.device = "cuda"
 
+    metrics_eval_all()
+
     if args.ds:
 
         # load model
         # with downscaling
-        srmodelname = 'model_epoch_3_step_57250'
-        srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_01_06_35_06/srmodel_checkpoints/{}.tar'.format(srmodelname)
+        srmodelname = 'model_epoch_1_step_24000'
+        srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_05_12_00_21/srmodel_checkpoints/{}.tar'.format(srmodelname)
 
         srmodel = srflow.SRFlow((in_channels, height, width), args.filter_size, 3, 2,
                                   args.bsz, args.s, args.nb, args.condch, args.nbits, 
@@ -762,8 +754,8 @@ if __name__ == "__main__":
         srmodel.load_state_dict(srckpt['model_state_dict'])
         srmodel.eval()
 
-        stmodelname = 'model_epoch_3_step_57250'
-        stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_01_06_35_06/stmodel_checkpoints/{}.tar'.format(stmodelname)
+        stmodelname = 'model_epoch_1_step_24000'
+        stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_05_12_00_21/stmodel_checkpoints/{}.tar'.format(stmodelname)
         stmodel = condNF.FlowModel((in_channels, height//args.s, width//args.s),
                                 args.filter_size, args.Lst, args.Kst, args.bsz,
                                 args.lag_len, args.s, args.nb, args.device,
@@ -785,7 +777,7 @@ if __name__ == "__main__":
 
     else:
         # no downscaling
-        modelname = 'model_epoch_0_step_9500'
+        modelname = 'model_epoch_1_step_34250'
         modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_no_ds__2023_12_05_05_51_46/model_checkpoints/{}.tar'.format(modelname)
 
         model = condNF.FlowModel((in_channels, height, width),

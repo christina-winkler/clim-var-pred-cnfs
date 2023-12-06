@@ -163,7 +163,6 @@ class NormFlowNet(nn.Module):
 
         return z, logdet, logpz
 
-
 class SRFlow(nn.Module):
     def __init__(self, input_shape, filter_size, L, K, bsz, s,
                  nb, cond_channels=128, n_bits_x=8, noscale=False,
@@ -198,7 +197,7 @@ class SRFlow(nn.Module):
         logdet = torch.zeros_like(z[:, 0, 0, 0])
 
         # Push z through flow
-        z, logdet, logp_z = self.flow.forward(z=z, xlr=x_lr, eps=eps, logdet=logdet)
+        z, logdet, logp_z = self.flow(z=z, xlr=x_lr, eps=eps, logdet=logdet)
 
         # Loss: Z'ks under Gaussian + sum_logdet
         # D = float(np.log(2) * np.prod(x_hr.size()[1:]))

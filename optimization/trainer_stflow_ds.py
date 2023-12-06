@@ -94,7 +94,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
             x_resh = F.interpolate(x[:,0,...], (x_for.shape[3]//args.s,x_for.shape[4]//args.s))
 
             # split time series into lags and prediction window
-            x_past_lr, x_for_lr = x_resh[:,:-1,...], x_resh[:,-1,...].unsqueeze(1)
+            x_past_lr, x_for_lr =  x_resh[:,:2, ...].squeeze(1), x_resh[:,2:,...]
 
             # reshape into correct format [bsz, num_channels, seq_len, height, width]
             x_past_lr = x_past_lr.unsqueeze(1).contiguous().float()
@@ -120,8 +120,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
             # run SR model
             x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
-            pdb.set_trace()
-            z, nll_sr = srmodel.forward(x_hr=x_for ,xlr=x_for_hat_lr.squeeze(1))
+            z, nll_sr = srmodel.forward(x_hr=x_for.squeeze(1), xlr=x_for_hat_lr.squeeze(1))
 
             # Compute gradients
             nll_sr.mean().backward()
@@ -160,7 +159,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
                     # testing reconstruction - should be exact same as x_for
                     reconstructions, _ = stmodel.forward(z=z.cuda(), x_past=x_past_lr.cuda(), state=state,
-                                                       use_stored=True, reverse=True)
+                                                         use_stored=True, reverse=True)
 
                     squared_recon_error = (reconstructions-x_for_lr).mean()**2
                     print("Reconstruction Error:", (reconstructions-x_for_lr).mean())
@@ -170,7 +169,6 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     array_imgs_np = np.array(grid_reconstructions.permute(2,1,0)[:,:,0].contiguous().unsqueeze(2))
                     cmap_recon = np.apply_along_axis(cm.inferno, 2, array_imgs_np)
                     reconstructions = wandb.Image(cmap_recon, caption="Training Reconstruction")
-                    # wandb.log({"Reconstructions (train) {}".format(step) : reconstructions})
 
                     plt.figure()
                     plt.imshow(grid_reconstructions.permute(1, 2, 0)[:,:,0].contiguous(),cmap=color)
@@ -211,7 +209,6 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     array_imgs_pred = np.array(grid_pred.permute(2,1,0)[:,:,0].unsqueeze(2))
                     cmap_pred = np.apply_along_axis(cm.inferno, 2, array_imgs_pred)
                     future_pred = wandb.Image(cmap_pred, caption="Frame at t")
-                    # wandb.log({"Predicted frame at t (train) {}".format(step) : future_pred})
 
                     # visualize predictions
                     grid_samples = torchvision.utils.make_grid(predictions[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
@@ -220,7 +217,6 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     plt.axis('off')
                     plt.title("Prediction at t")
                     plt.savefig(viz_dir + '/samples_{}.png'.format(step), dpi=300)
-
 
             if step % args.val_interval == 0:
 

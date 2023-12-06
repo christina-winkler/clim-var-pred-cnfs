@@ -181,6 +181,7 @@ class Squeeze(nn.Module):
 
     def forward(self, x, reverse=False):
         if len(x.size()) != 4:
+            print("Error ActNorm Layer.")
             raise NotImplementedError
         if not reverse:
             return self.squeeze_bchw(x)
