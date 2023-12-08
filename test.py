@@ -144,7 +144,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
     avrg_bw_time = []
     model.eval()
     color = 'inferno' if args.trainset == 'era5' else 'viridis'
-    savedir = "experiments/{}_{}_{}_nods/snapshots/test_set/".format(exp_name, modelname, args.trainset)
+    savedir = "experiments/{}_{}_{}_nods/snapshots/test_set".format(exp_name, modelname, args.trainset)
     os.makedirs(savedir, exist_ok=True)
     savedir_txt = 'experiments/{}_{}_{}_nods/'.format(exp_name, modelname, args.trainset)
     os.makedirs(savedir_txt, exist_ok=True)
@@ -271,16 +271,16 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
             # COMPUTE METRICS
             # MAE
-            mae08.append(metrics.MAE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
-            mae08unorm.append(metrics.MAE(stack_pred_multiroll[2,...], x_for.squeeze(1)).detach().cpu().numpy())
+            mae08unorm.append(metrics.MAE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
+            mae08.append(metrics.MAE(stack_pred_multiroll[2,...], x_for.squeeze(1)).detach().cpu().numpy())
 
             # RMSE
-            rmse08.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
-            rmse08unorm.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
+            rmse08unorm.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
+            rmse08.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
 
             print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
 
-            if batch_idx == 100:
+            if batch_idx == 50:
                 break
 
     # write results to file:
@@ -292,26 +292,30 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
     with open(savedir_txt + 'metric_results.txt','w') as f:
 
         f.write('Avrg MAE mu08:\n')
-        for item in np.mean(mae08, axis=0):
+        for item in np.mean(mae08unorm, axis=0):
             f.write("%f \n" % item)
 
-        # f.write('STD MAE mu08:\n')
-        # for item in np.std(mae08, axis=0):
-        #     f.write("%f \n" % item)
-
         f.write('Avrg RMSE mu08:\n')
-        for item in np.mean(rmse08, axis=0):
+        for item in np.mean(rmse08unorm, axis=0):
             f.write("%f \n" % item)   
 
         # f.write("%f \n" %np.std(rmse08, axis=0))
 
         f.write('Norm Avrg MAE mu08:\n')
-        for item in np.mean(mae08unorm, axis=0):
+        for item in np.mean(mae08, axis=0):
+            f.write("%f \n" % item)
+
+        f.write('Norm STD MAE mu08:\n')
+        for item in np.std(mae08, axis=0):
             f.write("%f \n" % item)
 
         f.write('Norm Avrg RMSE mu08:\n')
-        for item in np.mean(rmse08unorm, axis=0):
+        for item in np.mean(rmse08, axis=0):
             f.write("%f \n" % item)       
+
+        f.write('Norm STD RMSE mu08:\n')
+        for item in np.std(rmse08, axis=0):
+            f.write("%f \n" % item)
 
         # f.write("%f \n" %np.mean(mae08unorm, axis=0))
         # f.write("%f \n" %np.std(mae08unorm, axis=0))
@@ -478,16 +482,16 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
 
             # COMPUTE METRICS
             # MAE
-            mae08.append(metrics.MAE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
-            mae08unorm.append(metrics.MAE(stack_pred_multiroll[2,...], x_for.squeeze(1)).detach().cpu().numpy())
+            mae08unorm.append(metrics.MAE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
+            mae08.append(metrics.MAE(stack_pred_multiroll[2,...], x_for.squeeze(1)).detach().cpu().numpy())
 
             # RMSE
-            rmse08.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
-            rmse08unorm.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
+            rmse08unorm.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
+            rmse08.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
 
             print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
      
-            if batch_idx == 100:
+            if batch_idx == 50:
                 break
 
     # write results to file:
@@ -499,26 +503,30 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
     with open(savedir_txt + 'metric_results.txt','w') as f:
 
         f.write('Avrg MAE mu08:\n')
-        for item in np.mean(mae08, axis=0):
+        for item in np.mean(mae08unorm, axis=0):
             f.write("%f \n" % item)
 
-        # f.write('STD MAE mu08:\n')
-        # for item in np.std(mae08, axis=0):
-        #     f.write("%f \n" % item)
-
         f.write('Avrg RMSE mu08:\n')
-        for item in np.mean(rmse08, axis=0):
+        for item in np.mean(rmse08unorm, axis=0):
             f.write("%f \n" % item)   
 
         # f.write("%f \n" %np.std(rmse08, axis=0))
 
         f.write('Norm Avrg MAE mu08:\n')
-        for item in np.mean(mae08unorm, axis=0):
+        for item in np.mean(mae08, axis=0):
+            f.write("%f \n" % item)
+
+        f.write('Norm STD MAE mu08:\n')
+        for item in np.std(mae08, axis=0):
             f.write("%f \n" % item)
 
         f.write('Norm Avrg RMSE mu08:\n')
-        for item in np.mean(rmse08unorm, axis=0):
-            f.write("%f \n" % item)   
+        for item in np.mean(rmse08, axis=0):
+            f.write("%f \n" % item)       
+
+        f.write('Norm STD RMSE mu08:\n')
+        for item in np.std(rmse08, axis=0):
+            f.write("%f \n" % item)
 
     return None #np.mean(nll_list)
 
@@ -693,7 +701,7 @@ def metrics_eval_all():
                 print(line, end='')
                 line = f.readline()
 
-                if line == 'Avrg RMSE mu08:\n':
+                if line == 'Norm Avrg RMSE mu08:\n':
                     rmse = lines
                     lines = []
 
@@ -706,11 +714,19 @@ def metrics_eval_all():
 
         return rmse, mae
 
-    avrg_rmse_nods, avrg_mae_nods = read_metrics('flow-3-level-2-k_model_epoch_1_step_25750_wbench_nods/metric_results.txt')
-    avrg_rmse_ds, avrg_mae_ds = read_metrics('flow-3-level-2-k_model_epoch_1_step_24000_wbench_with_ds/metric_results.txt')
-
+    avrg_rmse_nods, avrg_mae_nods = read_metrics('flow-3-level-2-k_model_epoch_1_step_34250_wbench_nods/100/metric_results_normalized.txt')
+    avrg_rmse_ds, avrg_mae_ds = read_metrics('flow-3-level-2-k_model_epoch_1_step_21250_wbench_with_ds/100/metric_results_normalized.txt')
+    
+    error = [0.02] * len(avrg_rmse_nods)
+    avrg_rmse_nods = np.array(avrg_rmse_nods)
+    error = np.array(error)
+    xticks = np.arange(0,100,1)
     plt.plot(avrg_rmse_nods, label='ST-Flow', color='darkviolet')
+    plt.fill_between(xticks, avrg_rmse_nods - error, avrg_rmse_nods + error, color='gray', alpha=0.2)
+
+    avrg_rmse_ds = np.array(avrg_rmse_ds)
     plt.plot(avrg_rmse_ds, label='ST-Flow + DS', color='deeppink')
+    plt.fill_between(xticks, avrg_rmse_ds - error, avrg_rmse_ds + error, color='gray', alpha=0.2)
     # plt.plot(avrg_rmse_l3k3, label='ST-Flow L-3 K-3', color='mediumslateblue')
     # plt.plot(avrg_rmse_3dunet, label='3DUnet', color='lightseagreen')
     plt.grid(axis='y')
@@ -718,9 +734,10 @@ def metrics_eval_all():
     plt.legend(loc='best')
     plt.xlabel('Time-Step')
     plt.ylabel('Average RMSE')
+    plt.title('Z500')
     plt.show()
-    plt.savefig(path + '/avrg_rmse_all_wbench.png', dpi=300)
-
+    plt.savefig(path + '/avrg_rmse_all_wbench_norm.png', dpi=300)
+    quit()
     return None
 
 if __name__ == "__main__":
@@ -743,8 +760,8 @@ if __name__ == "__main__":
 
         # load model
         # with downscaling
-        srmodelname = 'model_epoch_1_step_24000'
-        srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_05_12_00_21/srmodel_checkpoints/{}.tar'.format(srmodelname)
+        srmodelname = 'model_epoch_1_step_21250'
+        srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/srmodel_checkpoints/{}.tar'.format(srmodelname)
 
         srmodel = srflow.SRFlow((in_channels, height, width), args.filter_size, 3, 2,
                                   args.bsz, args.s, args.nb, args.condch, args.nbits, 
@@ -754,8 +771,8 @@ if __name__ == "__main__":
         srmodel.load_state_dict(srckpt['model_state_dict'])
         srmodel.eval()
 
-        stmodelname = 'model_epoch_1_step_24000'
-        stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_05_12_00_21/stmodel_checkpoints/{}.tar'.format(stmodelname)
+        stmodelname = 'model_epoch_1_step_21250'
+        stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/stmodel_checkpoints/{}.tar'.format(stmodelname)
         stmodel = condNF.FlowModel((in_channels, height//args.s, width//args.s),
                                 args.filter_size, args.Lst, args.Kst, args.bsz,
                                 args.lag_len, args.s, args.nb, args.device,
