@@ -280,7 +280,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
             print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
 
-            if batch_idx == 50:
+            if batch_idx == 10:
                 break
 
     # write results to file:
@@ -491,7 +491,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
 
             print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
      
-            if batch_idx == 50:
+            if batch_idx == 10:
                 break
 
     # write results to file:
@@ -688,8 +688,10 @@ def metrics_eval_all():
 
     def read_metrics(fname):
 
-        rmse = []
-        mae = []
+        avrg_rmse = []
+        std_rmse = []
+        avrg_mae = []
+        std_mae = []
         lines = []
 
         # read metric results from file
@@ -701,32 +703,44 @@ def metrics_eval_all():
                 print(line, end='')
                 line = f.readline()
 
-                if line == 'Norm Avrg RMSE mu08:\n':
-                    rmse = lines
+                if line == 'Norm Avrg RMSE mu08:\n': 
+                    avrg_mae = lines
                     lines = []
+                    continue
 
-                elif line == '':
+                if line == 'Norm STD MAE mu08:\n':
+                    avrg_rmse = lines
+                    lines = []
+                    continue
+
+                if line == 'Norm STD RMSE mu08:\n':
+                    std_mae = lines
+                    lines = []
+                    continue
+
+                if line == '':
                     pass
 
                 else:
                     lines.append(float(line))
-            mmd = lines
 
-        return rmse, mae
+            std_rmse = lines
+        return avrg_rmse, std_rmse, avrg_mae, std_mae
 
-    avrg_rmse_nods, avrg_mae_nods = read_metrics('flow-3-level-2-k_model_epoch_1_step_34250_wbench_nods/100/metric_results_normalized.txt')
-    avrg_rmse_ds, avrg_mae_ds = read_metrics('flow-3-level-2-k_model_epoch_1_step_21250_wbench_with_ds/100/metric_results_normalized.txt')
+    avrg_rmse_nods, std_rmse_nods, _, _ = read_metrics('flow-3-level-2-k_model_epoch_1_step_34250_wbench_nods/100STD/metric_results_normalized.txt')
+    avrg_rmse_ds, std_rmse_ds,_, _ = read_metrics('flow-3-level-2-k_model_epoch_1_step_21250_wbench_with_ds/100STD/metric_results_normalized.txt')
     
-    error = [0.02] * len(avrg_rmse_nods)
+    # pdb.set_trace()
     avrg_rmse_nods = np.array(avrg_rmse_nods)
-    error = np.array(error)
+    error = np.array(std_rmse_nods)
+    error_ds = np.array(std_rmse_ds)
     xticks = np.arange(0,100,1)
     plt.plot(avrg_rmse_nods, label='ST-Flow', color='darkviolet')
     plt.fill_between(xticks, avrg_rmse_nods - error, avrg_rmse_nods + error, color='gray', alpha=0.2)
 
     avrg_rmse_ds = np.array(avrg_rmse_ds)
     plt.plot(avrg_rmse_ds, label='ST-Flow + DS', color='deeppink')
-    plt.fill_between(xticks, avrg_rmse_ds - error, avrg_rmse_ds + error, color='gray', alpha=0.2)
+    plt.fill_between(xticks, avrg_rmse_ds - error_ds, avrg_rmse_ds + error_ds, color='gray', alpha=0.2)
     # plt.plot(avrg_rmse_l3k3, label='ST-Flow L-3 K-3', color='mediumslateblue')
     # plt.plot(avrg_rmse_3dunet, label='3DUnet', color='lightseagreen')
     plt.grid(axis='y')
@@ -737,7 +751,7 @@ def metrics_eval_all():
     plt.title('Z500')
     plt.show()
     plt.savefig(path + '/avrg_rmse_all_wbench_norm.png', dpi=300)
-    quit()
+    # quit()
     return None
 
 if __name__ == "__main__":
