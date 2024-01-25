@@ -283,7 +283,8 @@ class FlowModel(nn.Module):
 
         # pass reverse through variational dequantizer
         # x, _ = self._variational_dequantizer(x, ldj=logdet.unsqueeze(0), reverse=True)
-        return x, state
+        nll = -(logdet + logpz)
+        return x, state, nll
 
     def sigmoid(self, z, ldj, alpha=1e-5, reverse=False):
         """
@@ -348,8 +349,6 @@ class FlowModel(nn.Module):
         x_t1 = f^-1(z_{t1}|h_{t1}).
         """
         # sampling next time-step
-        # TODO: later on, adapt code to sample trajectories
-        # TODO: for trajectory sampling, can also use cold hidden start state with zeros
         with torch.no_grad():
             prediction = self.inverse_flow(x_past=x_past, state=state, eps=eps)
         return prediction

@@ -22,7 +22,7 @@ def minmax_scaler(x):
         x[i,...] = (x[i,...] - x[i,...].max()) / (x[i,...].max() - x[i,...].min())
     return x * (values_range[1] - values_range[0]) + values_range[0]
 
-@dataclass # TODO: needs to be adapted!
+@dataclass
 class InverseMinMaxScaler:
     max_value: float = 315.91873
     min_value: float = 241.22385
@@ -32,10 +32,12 @@ class InverseMinMaxScaler:
         x = y * (self.max_value - self.min_value) + self.min_value
         return x
 
+
 @dataclass
-class WeatherBenchData(Dataset):
+class ERA5Geopotential500(Dataset):
     """
     WeatherBench: A benchmark dataset for data-driven weather forecasting.
+    This class loads the ERA5 Geopotential dataset recorded hourly.
     Description of data: https://arxiv.org/pdf/2002.00469.pdf
     """
 
@@ -57,7 +59,7 @@ class WeatherBenchData(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-
+        import pdb; pdb.set_trace()
         x = self.data[idx:idx+self.window_size+1]
         x_unorm = x.values
 
@@ -66,6 +68,6 @@ class WeatherBenchData(Dataset):
         longitude = np.array(x.coords['lon'])
 
         # normalize over each time-step, perhaps change this later
-        x_ = minmax_scaler(x) 
-        
+        x_ = minmax_scaler(x)
+
         return self.transform(x_), torch.FloatTensor(x_unorm), str(time), latitude, longitude

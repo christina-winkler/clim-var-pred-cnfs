@@ -30,7 +30,7 @@ class InverseMinMaxScaler:
 
 
 @dataclass
-class ERA5WTCData(Dataset):
+class ERA5TWCData(Dataset):
     """
     """
 

@@ -15,7 +15,8 @@ import os
 import xarray as xr
 
 from data.era5_temp_dataset import ERA5T2MData
-from data.weatherbench_dataset import WeatherBenchData
+from data.era5_geop_dataset import ERA5Geopotential500
+from data.era5_watercontent_dataset import ERA5TWCData
 
 random.seed(0)
 torch.manual_seed(0)
@@ -32,11 +33,11 @@ from data.imresize_bicubic import imresize
 
 # data utils
 
-def load_era5(args):
+def load_era5_temp(args):
 
-    print("Loading ERA5 ...")
+    print("Loading ERA5 daily Temperature dataset ...")
 
-    dpath = os.getcwd() + '/data/assets/ftp.bgc-jena.mpg.de/pub/outgoing/aschall/data.zarr'
+    dpath = args.datadir + '/assets/ftp.bgc-jena.mpg.de/pub/outgoing/aschall/data.zarr'
     dataset = ERA5T2MData(data_path=dpath, window_size=args.lag_len)
 
     n_train_samples = int(len(dataset) // (1/0.7))
@@ -60,9 +61,9 @@ def load_era5(args):
 
     return train_loader, val_loader, test_loader, args
 
-def load_weather_bench(args):
+def load_era5_geop(args):
 
-    print("Loading Weather Bench ...")
+    print("Loading ERA5 hourly Geopotential data ...")
 
     dpath = args.datadir + '/geopotential_500/'
     dataset = WeatherBenchData(data_path=dpath, window_size=2, args=args)
@@ -88,14 +89,23 @@ def load_weather_bench(args):
 
     return train_loader, val_loader, test_loader, args
 
+def load_precipitation(args):
+
+    return None
 
 def load_data(args):
 
-    if args.trainset == "era5":
-        return load_era5(args)
+    if args.trainset == "temp":
+        return load_era5_temp(args)
 
-    elif args.trainset == "wbench":
-        return load_weather_bench(args)
+    elif args.trainset == "geop":
+        return load_era5_geop(args)
+
+    elif args.trainset == "twc":
+        return load_era5_watercontent_dset(args)
+
+    # elif args.trainset == "precip": TODO
+    #     return load_precipitation(args)
 
     else:
         raise ValueError("Dataset not available. Check for typos!")

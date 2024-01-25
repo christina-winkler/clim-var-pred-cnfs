@@ -541,6 +541,7 @@ def metrics_eval(args, model, test_loader, exp_name, modelname, logstep):
     mae08 = []
     mse08 = []
     rmse08 = []
+    nll08 = []
 
     state = None
 
@@ -572,7 +573,7 @@ def metrics_eval(args, model, test_loader, exp_name, modelname, logstep):
             predictions = []
             past = x_past[0,:,:,:,:].unsqueeze(0)
 
-            x, s = model._predict(x_past=past,
+            x, s, nll = model._predict(x_past=past, # TODO return nll
                                   state=None,
                                   eps=eps)
 
@@ -584,14 +585,18 @@ def metrics_eval(args, model, test_loader, exp_name, modelname, logstep):
             print('ROLLOUT COMPUTED!')
 
             # MAE
-            pdb.set_trace()
             mae08.append(metrics.MAE(inv_scaler(stacked_pred, min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
 
             # RMSE
             rmse08.append(metrics.RMSE(inv_scaler(stacked_pred, min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
 
-            print('3 h', current_rmse[3], current_psnr[3], current_ssim[3])#, emd[0])
-            print('20 h', current_rmse[20], current_psnr[20], current_ssim[20])#, emd[0])
+            # NLL
+            pdb.set_trace()
+            nll08.append(nll)
+
+            print('3 h', current_rmse[3], current_psnr[3], current_ssim[3])
+            print('20 h', current_rmse[20], current_psnr[20], current_ssim[20])
+            print()
 
             print(batch_idx)
             if batch_idx == 200:
@@ -824,6 +829,6 @@ if __name__ == "__main__":
         params = sum(x.numel() for x in model.parameters() if x.requires_grad)
         print('Nr of Trainable Params {}:  '.format(args.device), params)
         print("Evaluate on test split ...")
-        test(model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.Lst, args.Kst), modelname, -99999, args)
-        # metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
+        # test(model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.Lst, args.Kst), modelname, -99999, args)
+        metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
         # metrics_eval_all()
