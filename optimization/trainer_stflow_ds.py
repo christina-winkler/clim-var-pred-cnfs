@@ -40,7 +40,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
     # wandb.init(project="arflow", config=config_dict)
     print("With DOWNSCALING")
     args.experiment_dir = os.path.join('runs',
-                                        args.modeltype + '_' + args.trainset  + datetime.now().strftime("_%Y_%m_%d_%H_%M_%S"))
+                                        args.modeltype + '_' + args.trainset + '_{}x'.format(args.s) + datetime.now().strftime("_%Y_%m_%d_%H_%M_%S"))
     # set viz dir
     viz_dir = "{}/snapshots/trainset/".format(args.experiment_dir)
     os.makedirs(viz_dir, exist_ok=True)
@@ -158,7 +158,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     stmodel.eval()
 
                     # testing reconstruction - should be exact same as x_for
-                    reconstructions, _ = stmodel.forward(z=z.cuda(), x_past=x_past_lr.cuda(), state=state,
+                    reconstructions,_,  _ = stmodel.forward(z=z.cuda(), x_past=x_past_lr.cuda(), state=state,
                                                          use_stored=True, reverse=True)
 
                     squared_recon_error = (reconstructions-x_for_lr).mean()**2
@@ -176,31 +176,31 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     plt.savefig(viz_dir + '/reconstructed_frame_t_{}.png'.format(step), dpi=300)
                     # plt.show()
 
-                    # visualize past frames the prediction is based on (context)
-                    grid_past = torchvision.utils.make_grid(x_past_lr[0:9, -1, :, :].cpu(), normalize=True, nrow=3)
-                    array_imgs_past = np.array(grid_past.permute(2,1,0)[:,:,0].contiguous().unsqueeze(2))
-                    cmap_past = np.apply_along_axis(cm.inferno, 2, array_imgs_past)
-                    past_imgs = wandb.Image(cmap_past, caption="Frame at t-1")
-                    # wandb.log({"Context Frame at t-1 (train) {}".format(step) : past_imgs})
+                    # # visualize past frames the prediction is based on (context)
+                    # grid_past = torchvision.utils.make_grid(x_past_lr[0:9, -1, :, :].cpu(), normalize=True, nrow=3)
+                    # array_imgs_past = np.array(grid_past.permute(2,1,0)[:,:,0].contiguous().unsqueeze(2))
+                    # cmap_past = np.apply_along_axis(cm.inferno, 2, array_imgs_past)
+                    # past_imgs = wandb.Image(cmap_past, caption="Frame at t-1")
+                    # # wandb.log({"Context Frame at t-1 (train) {}".format(step) : past_imgs})
 
-                    plt.figure()
-                    plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
-                    plt.axis('off')
-                    plt.title("Context Frame at t-1 (train)")
-                    plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
+                    # plt.figure()
+                    # plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+                    # plt.axis('off')
+                    # plt.title("Context Frame at t-1 (train)")
+                    # plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
                     
                     # # visualize future frame of the correct prediction
-                    grid_future = torchvision.utils.make_grid(x_for_lr[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
-                    array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))
-                    cmap_future = np.apply_along_axis(cm.inferno, 2, array_imgs_future)
-                    future_imgs = wandb.Image(cmap_future, caption="Frame at t")
-                    # wandb.log({"Frame at t (train) {}".format(step) : future_imgs})
+                    # grid_future = torchvision.utils.make_grid(x_for_lr[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
+                    # array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))
+                    # cmap_future = np.apply_along_axis(cm.inferno, 2, array_imgs_future)
+                    # future_imgs = wandb.Image(cmap_future, caption="Frame at t")
+                    # # wandb.log({"Frame at t (train) {}".format(step) : future_imgs})
 
-                    plt.figure()
-                    plt.imshow(grid_future.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
-                    plt.axis('off')
-                    plt.title("Ground Truth at t")
-                    plt.savefig(viz_dir + '/frame_at_t_{}.png'.format(step), dpi=300)
+                    # plt.figure()
+                    # plt.imshow(grid_future.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+                    # plt.axis('off')
+                    # plt.title("Ground Truth at t")
+                    # plt.savefig(viz_dir + '/frame_at_t_{}.png'.format(step), dpi=300)
 
                      # predicting a new sample based on context window
                     print("Predicting ...")
@@ -215,7 +215,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     plt.figure()
                     plt.imshow(grid_samples.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
                     plt.axis('off')
-                    plt.title("Prediction at t")
+                    plt.title("Low-Res Prediction at t")
                     plt.savefig(viz_dir + '/samples_{}.png'.format(step), dpi=300)
 
             if step % args.val_interval == 0:

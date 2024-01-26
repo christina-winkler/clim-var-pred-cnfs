@@ -80,37 +80,35 @@ class ERA5T2MData(Dataset):
     data_path: str
     transform: Callable = None
     window_size: int = 2
+    s: int = 1
 
     def __post_init__(self):
         self.data = xr.open_zarr(self.data_path)['t2m']
 
         if self.transform is None:
-            self.transform = transforms.Compose([transforms.ToTensor()])  #XRToTensor(),
-                                                 # MinMaxScaler(values_range=(0, 1))])
+            self.transform_x = transforms.Compose([transforms.ToTensor(), MinMaxScaler(values_range=(0, 1))])  
+            self.transform_y = transforms.Compose([XRToTensor(), MinMaxScaler(values_range=(0, 1))])
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
 
-        x = self.data[idx:idx+self.window_size+1]
+        y = self.data[idx:idx+self.window_size+1]
+        time = np.array(y.coords['time'])
+        latitude = np.array(y.coords['latitude'])
+        longitude = np.array(y.coords['longitude'])
 
-        # x = self.data.isel(time=idx)
-        # print(x.values.min()-273.15, x.values.max()-273.15), converting min and max temp to Celsius
-        time = np.array(x.coords['time'])
-        latitude = np.array(x.coords['latitude'])
-        longitude = np.array(x.coords['longitude'])
+        if self.s > 1: # resize frames to smaller resolution
+            x_resh = np.zeros((y.shape[0], y.shape[1]//self.s, y.shape[2]//self.s))
+            for i in range(self.window_size+1):
+                x_resh[i,...] = resize(y[i,...], (y.shape[1]//self.s, y.shape[2]//self.s), anti_aliasing=True)
+            x=x_resh
 
-        # resize frames
-        x_resh = np.zeros((x.shape[0], x.shape[1]//2, x.shape[2]//2))
+        else: # operate on original input resolution
+            x=y
 
-        for i in range(self.window_size+1):
-            x_resh[i,...] = resize(x[i,...], (x.shape[1]//2, x.shape[2]//2),
-                              anti_aliasing=True)
-
-        x=x_resh
-        # self.transform(x).permute(1,0,2).unsqueeze(1)
-        return self.transform(x).permute(1,0,2).unsqueeze(1), str(time), latitude, longitude
+        return self.transform_y(y).permute(1,0,2,3), self.transform_x(x).permute(1,0,2).unsqueeze(1), str(time), latitude, longitude
 
 # datashape = ERA5T2MData('/home/christina/Documents/research/auto-encoding-normalizing-flows/code/data/ftp.bgc-jena.mpg.de/pub/outgoing/aschall/data.zarr')[0][0].shape
 # temperatures, time = ERA5T2MData('/home/christina/Documents/research/auto-encoding-normalizing-flows/code/data/ftp.bgc-jena.mpg.de/pub/outgoing/aschall/data.zarr')[0]

@@ -59,7 +59,7 @@ class ERA5Geopotential500(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        import pdb; pdb.set_trace()
+
         x = self.data[idx:idx+self.window_size+1]
         x_unorm = x.values
 

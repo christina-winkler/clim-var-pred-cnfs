@@ -178,7 +178,7 @@ if __name__ == "__main__":
     # data
     parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
                         help="Dataset to train the model on.")
-    parser.add_argument("--trainset", type=str, default="wbench",
+    parser.add_argument("--trainset", type=str, default="geop",
                         help="Dataset to train the model on.")
 
     args = parser.parse_args()

@@ -153,6 +153,7 @@ class Squeeze(nn.Module):
         self.factor = factor
 
     def squeeze_bchw(self, x):
+
         bs, c, h, w = x.size()
         assert h % self.factor == 0 and w % self.factor == 0
 
@@ -193,6 +194,7 @@ class SqueezeTS(nn.Module):
         self.factor = factor
 
     def squeeze_bchw(self, x):
+
         bs, c, h, w = x.size()
         assert h % self.factor == 0 and w % self.factor == 0
 
