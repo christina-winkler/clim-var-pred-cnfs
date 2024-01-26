@@ -17,6 +17,7 @@ import xarray as xr
 from data.era5_temp_dataset import ERA5T2MData
 from data.era5_geop_dataset import ERA5Geopotential500
 from data.era5_watercontent_dataset import ERA5TWCData
+from data.rain_dataset import RainNetDataset
 
 random.seed(0)
 torch.manual_seed(0)
@@ -66,7 +67,7 @@ def load_era5_geop(args):
     print("Loading ERA5 hourly Geopotential data ...")
 
     dpath = args.datadir + '/geopotential_500/'
-    dataset = WeatherBenchData(data_path=dpath, window_size=2, args=args)
+    dataset = ERA5Geopotential500(data_path=dpath, window_size=2, args=args)
 
     n_train_samples = int(len(dataset) // (1/0.85))
     n_val_samples = int(len(dataset) // (1/0.05))
@@ -91,6 +92,29 @@ def load_era5_geop(args):
 
 def load_precipitation(args):
 
+    print("Loading Precipitation Data ...")
+
+    dpath = args.datadir + '/rain/'
+    train_data = RainNetDataset(data_path=dpath, is_training=True)
+
+    n_train_samples = int(len(dataset) // (1/0.85))
+    n_val_samples = int(len(dataset) // (1/0.05))
+    n_test_samples = int(len(dataset) // (1/0.1))
+
+    train_idcs = [i for i in range(0, n_train_samples)]
+    val_idcs = [i for i in range(0, n_val_samples)]
+    test_idcs = [i for i in range(0, n_test_samples)]
+
+    trainset = torch.utils.data.Subset(dataset, train_idcs)
+    valset = torch.utils.data.Subset(dataset, val_idcs)
+    testset = torch.utils.data.Subset(dataset, test_idcs)
+
+    train_loader = data_utils.DataLoader(trainset, args.bsz, shuffle=True,
+                                         drop_last=True)
+    val_loader = data_utils.DataLoader(valset, args.bsz, shuffle=True,
+                                       drop_last=True)
+    test_loader = data_utils.DataLoader(testset, args.bsz, shuffle=False,
+                                        drop_last=True)
     return None
 
 def load_data(args):
@@ -104,8 +128,8 @@ def load_data(args):
     elif args.trainset == "twc":
         return load_era5_watercontent_dset(args)
 
-    # elif args.trainset == "precip": TODO
-    #     return load_precipitation(args)
+    elif args.trainset == "rain": 
+        return load_precipitation(args)
 
     else:
         raise ValueError("Dataset not available. Check for typos!")
