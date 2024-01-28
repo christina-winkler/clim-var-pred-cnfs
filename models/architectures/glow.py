@@ -134,7 +134,6 @@ class FlowModel(nn.Module):
 
         # Loss: Z'ks under Gaussian + sum_logdet
         x_bpd = -(logdet + logp_z) / float(np.log(2) * np.prod(x_image.size()[1:]))
-
         return z, x_bpd
 
     def inverse_flow(self, z, eps, logdet=0):

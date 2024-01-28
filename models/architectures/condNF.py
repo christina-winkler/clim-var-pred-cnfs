@@ -351,4 +351,4 @@ class FlowModel(nn.Module):
         # sampling next time-step
         with torch.no_grad():
             x_hat, state, nll = self.inverse_flow(x_past=x_past, state=state, eps=eps)
-        return x_hat, nll
+        return x_hat, state,nll

@@ -77,7 +77,7 @@ def main(args):
             model.load_state_dict(ckpt['model_state_dict'])
 
 
-        if args.ds:
+        if args.ds or args.s > 1:
 
             sr_model = srflow.SRFlow((in_channels, height, width), args.filter_size, args.Lsr, args.Ksr,
                                       args.bsz, args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     # hyperparameters
     parser.add_argument("--nbits", type=int, default=8,
                         help="Images converted to n-bit representations.")
-    parser.add_argument("--s", type=int, default=2, help="Upscaling factor.")
+    parser.add_argument("--s", type=int, default=1, help="Upscaling factor.")
     parser.add_argument("--crop_size", type=int, default=500,
                         help="Crop size when random cropping is applied.")
     parser.add_argument("--patch_size", type=int, default=500,

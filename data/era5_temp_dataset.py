@@ -107,8 +107,8 @@ class ERA5T2MData(Dataset):
 
         else: # operate on original input resolution
             x=y
-
-        return self.transform_y(y).permute(1,0,2,3), self.transform_x(x).permute(1,0,2).unsqueeze(1), str(time), latitude, longitude
+        
+        return self.transform_y(y), torch.FloatTensor(y.values), str(time), latitude, longitude
 
 # datashape = ERA5T2MData('/home/christina/Documents/research/auto-encoding-normalizing-flows/code/data/ftp.bgc-jena.mpg.de/pub/outgoing/aschall/data.zarr')[0][0].shape
 # temperatures, time = ERA5T2MData('/home/christina/Documents/research/auto-encoding-normalizing-flows/code/data/ftp.bgc-jena.mpg.de/pub/outgoing/aschall/data.zarr')[0]

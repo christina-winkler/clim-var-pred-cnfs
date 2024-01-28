@@ -203,13 +203,13 @@ class SRFlow(nn.Module):
         # D = float(np.log(2) * np.prod(x_hr.size()[1:]))
         # x_bpd = -(logdet + logp_z) / D
         x_nll = -(logdet + logp_z)
-
         return z, x_nll
 
     def inverse_flow(self, z, xlr, eps=1.0, logdet=0, use_stored=False):
         y_hat, logdet, log_pz = self.flow.forward(z, logdet=logdet, xlr=xlr, eps=eps,
                                                   reverse=True, use_stored=use_stored)
-        return y_hat, logdet, log_pz
+        x_nll = -(logdet + log_pz)
+        return y_hat, x_nll
 
     def _dequantize_uniform(self, x, n_bins):
         """

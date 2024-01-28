@@ -74,7 +74,7 @@ parser.add_argument("--ds", action="store_true",
 # hyperparameters
 parser.add_argument("--nbits", type=int, default=8,
                         help="Images converted to n-bit representations.")
-parser.add_argument("--s", type=int, default=2, help="Upscaling factor.")
+parser.add_argument("--s", type=int, default=1, help="Upscaling factor.")
 parser.add_argument("--crop_size", type=int, default=500,
                         help="Crop size when random cropping is applied.")
 parser.add_argument("--patch_size", type=int, default=500,
@@ -104,7 +104,7 @@ parser.add_argument("--condch", type=int, default=128//8,
 # data
 parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
                         help="Dataset to train the model on.")
-parser.add_argument("--trainset", type=str, default="wbench",
+parser.add_argument("--trainset", type=str, default="temp",
                         help="Dataset to train the model on.")
 
 args = parser.parse_args()
@@ -113,24 +113,61 @@ def inv_scaler(x, min_value=0, max_value=100):
     x = x * (max_value - min_value) + min_value
     return x
 
-def create_rollout(model, init_pred, x_for, x_past, s, lead_time):
+def create_rollout(model, x_for, x_past, lead_time):
+    """
+    Generate a rollout sequence using the given forecasting model.
 
+    Parameters:
+    - model: The forecasting model.
+    - x_for: The target future sequence.
+    - x_past: The historical input sequence.
+    - lead_time: The length of the lead time for the rollout.
+
+    Returns:
+    - stacked_pred: The stacked prediction sequence.
+    - abs_err: The absolute error between predictions and the target future sequence.
+    - nll: List of negative log likelihood values for each prediction step.
+    """
+
+    # Initialize predictions, negative log likelihood list, and initial state
     predictions = []
-    predictions.append(init_pred[0,:,:,:,:])
-    interm = x_past[0,:,1,:,:].unsqueeze(1).cuda()
+    nll = []
 
+    # Obtain the initial prediction, state, and ignore third output
+    past = x_past[0, :, :, :, :].unsqueeze(0)
+    init_pred, s, _ = stmodel._predict(x_past=past, state=None, eps=0.8)
+
+    # Append the initial prediction to the sequence
+    predictions.append(init_pred[0, :, :, :, :])
+
+    # Initialize intermediate state with the second time step of the historical input sequence
+    interm = x_past[0, :, 1, :, :].unsqueeze(1).cuda()
+
+    # Generate the rollout sequence
     for l in range(lead_time):
-        context = torch.cat((predictions[l-1], interm), 1)
-        x, s = model._predict(x_past=context.unsqueeze(0), state=s)
-        predictions.append(x[0,:,:,:,:])
-        interm = x[0,:,:,:,:] # update intermediate state
+        
+        # Concatenate the previous prediction and intermediate state
+        context = torch.cat((predictions[l - 1], interm), 1)
 
+        # Run the model to predict the next time step
+        x, s, curr_nll = model._predict(x_past=context.unsqueeze(0), state=s)
+
+        # Append the predicted time step and associated negative log likelihood to the lists
+        predictions.append(x[0, :, :, :, :])
+        nll.append(curr_nll.item())
+        print(curr_nll.item())
+
+        # Update the intermediate state
+        interm = x[0, :, :, :, :]
+
+    # Stack the predictions to form the final sequence
     stacked_pred = torch.stack(predictions, dim=0).squeeze(1).squeeze(2)
 
-    # compute absolute error images
-    abs_err = torch.abs(stacked_pred.cuda() - x_for[:,...].cuda().squeeze(1))
+    # Compute absolute error images
+    abs_err = torch.abs(stacked_pred.cuda() - x_for[:, ...].cuda().squeeze(1))
 
-    return stacked_pred, abs_err
+    return stacked_pred, abs_err, nll
+
 
 def test(model, test_loader, exp_name, modelname, logstep, args):
 
@@ -329,8 +366,12 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
 def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelname, logstep, args):
 
-    state=None
-    nll_list=[]
+    # Assuming 'args' is an object containing various parameters
+    # such as device, s, trainset, etc.
+
+    # Initialization of variables
+    state = None
+    nll_list = []
     avrg_fwd_time = []
     avrg_bw_time = []
 
@@ -339,47 +380,59 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
     rmse08unorm = []
     mae08unorm = []
 
-    color = 'inferno' if args.trainset == 'era5' else 'viridis'
+    nll_st_08 = []
+    nll_sr = []
+
+    # Choose color map based on the dataset
+    color = 'viridis' if args.trainset == 'geop' else 'inferno'
+
+    # Directory for saving snapshots of the test set
     savedir = "experiments/{}_{}_{}_with_ds/snapshots/test_set/".format(exp_name, stmodelname, args.trainset)
     os.makedirs(savedir, exist_ok=True)
+
+    # Directory for saving experiment details
     savedir_txt = 'experiments/{}_{}_{}_with_ds/'.format(exp_name, stmodelname, args.trainset)
     os.makedirs(savedir_txt, exist_ok=True)
 
+    # Set both models to evaluation mode and disable gradient computation
     srmodel.eval()
     stmodel.eval()
-    with torch.no_grad():
-        for batch_idx, item in enumerate(test_loader):
 
+
+    with torch.no_grad():
+        # Loop through batches in the test loader
+        for batch_idx, item in enumerate(test_loader):
+            # Move data to the specified device
             x = item[0].to(args.device)
             x_unorm = item[1].to(args.device)
 
-            x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
-            x_past_unorm, x_for_unorm = x_unorm[:,:2,...], x_unorm[:,2:,...]
+            # Split input data into past and future sequences
+            x_past, x_for = x[:, :, :2, ...], x[:, :, 2:, ...]
+            x_past_unorm, x_for_unorm = x_unorm[:, :2, ...], x_unorm[:, 2:, ...]
 
-            x_resh = F.interpolate(x[:,0,...], (x_for.shape[3]//args.s, x_for.shape[4]//args.s))
+            # Resample the input for forecasting
+            x_resh = F.interpolate(x[:, 0, ...], (x_for.shape[3] // args.s, x_for.shape[4] // args.s))
 
-            # split time series into lags and prediction window
-            x_past_lr, x_for_lr = x_resh[:,:2,...], x_resh[:,2:,...]
+            # Split time series into lags and prediction window
+            x_past_lr, x_for_lr = x_resh[:, :2, ...], x_resh[:, 2:, ...]
 
-            # reshape into correct format [bsz, num_channels, seq_len, height, width]
+            # Reshape into the correct format [bsz, num_channels, seq_len, height, width]
             x_past_lr = x_past_lr.unsqueeze(1).contiguous().float()
             x_for_lr = x_for_lr.unsqueeze(1).contiguous().float()
-            
+
+            # Record the start time for measuring forecasting time
             start = timeit.default_timer()
 
-            # run forecasting method
-            x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state=None)
+            # Run the forecasting method
+            x_for_hat_lr, state, nllst = stmodel._predict(x_past_lr.cuda(), state=None)
             x_for_hat_lr = x_for_hat_lr.squeeze(1)
 
-            # super-resolve result
-            x_for_hat, _, _ = srmodel(xlr=x_for_hat_lr, reverse=True, eps=0.8)
+            # Super-resolve the result
+            x_for_hat, nllsr = srmodel(xlr=x_for_hat_lr, reverse=True, eps=0.8)
 
             stop = timeit.default_timer()
             print("Time Fwd pass:", stop-start)
             avrg_fwd_time.append(stop-start)
-
-            # Generative loss
-            # nll_list.append(nll_st.mean().detach().cpu().numpy())
 
             # ---------------------- Evaluate Predictions---------------------- #
 
@@ -389,16 +442,11 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             # mu08 = model._predict(x_past, state, eps=0.8)
             # mu1 = model._predict(x_past, state, eps=1)
 
-            print(" Evaluate Predictions ... ")
+            print(" Create Rollouts ... ")
             rollout_len = args.bsz - 1
             eps = 0.8
-            predictions = []
-            start = timeit.default_timer()
-            past = x_past_lr[0,:,:,:,:].unsqueeze(0) 
 
-            x, s = stmodel._predict(x_past=past,  
-                                    state=None, 
-                                    eps=eps)
+            start = timeit.default_timer() # TODO put timing function somewhere else
 
             stop = timeit.default_timer()
 
@@ -407,16 +455,16 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
 
             # create multiple rollouts with same initial conditions
             nr_of_rollouts = 4
-            stacked_pred1, abs_err1 = create_rollout(stmodel, x, x_for_lr, x_past_lr, s, rollout_len)
-            stacked_pred2, abs_err2 = create_rollout(stmodel, x, x_for_lr, x_past_lr, s, rollout_len)
-            stacked_pred3, abs_err3 = create_rollout(stmodel, x, x_for_lr, x_past_lr, s, rollout_len)
-            stacked_pred4, abs_err4 = create_rollout(stmodel, x, x_for_lr, x_past_lr, s, rollout_len)
+            stacked_pred1, abs_err1, nll_st_1 = create_rollout(stmodel, x_for_lr, x_past_lr, rollout_len)
+            stacked_pred2, abs_err2, nll_st_2 = create_rollout(stmodel, x_for_lr, x_past_lr, rollout_len)
+            stacked_pred3, abs_err3, nll_st_3 = create_rollout(stmodel, x_for_lr, x_past_lr, rollout_len)
+            stacked_pred4, abs_err4, nll_st_4 = create_rollout(stmodel, x_for_lr, x_past_lr, rollout_len)
 
             # super-resolve predictions 
-            stacked_pred1, _,_ = srmodel(xlr=stacked_pred1, eps=1.0, reverse=True)
-            stacked_pred2, _,_ = srmodel(xlr=stacked_pred2, eps=1.0, reverse=True)
-            stacked_pred3, _,_ = srmodel(xlr=stacked_pred3, eps=1.0, reverse=True)
-            stacked_pred4, _,_ = srmodel(xlr=stacked_pred4, eps=1.0, reverse=True)
+            stacked_pred1, _ = srmodel(xlr=stacked_pred1, eps=eps, reverse=True)
+            stacked_pred2, _ = srmodel(xlr=stacked_pred2, eps=eps, reverse=True)
+            stacked_pred3, _ = srmodel(xlr=stacked_pred3, eps=eps, reverse=True)
+            stacked_pred4, _ = srmodel(xlr=stacked_pred4, eps=eps, reverse=True)
 
             # compute absolute error of super-resolved predictions 
             abs_err1 = torch.abs(stacked_pred1.cuda() - x_for[:,...].cuda())
@@ -489,10 +537,17 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             rmse08unorm.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
             rmse08.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
 
-            print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
-     
+            # NLL
+            nll_st_08.append(nll_st_1)
+
+            print('Unorm RMSE, MAE score', rmse08unorm[0].mean(), mae08unorm[0].mean())
+            print('Norm RMSE, MAE score:', rmse08[0].mean(), mae08[0].mean())
+            print('NLL ST:', nll_st_08)
+
             if batch_idx == 10:
                 break
+            
+            # TODO add CRPS score
 
     # write results to file:
     with open(savedir_txt + 'nll_and_runtimes.txt','w') as f:
@@ -526,6 +581,14 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
 
         f.write('Norm STD RMSE mu08:\n')
         for item in np.std(rmse08, axis=0):
+            f.write("%f \n" % item)
+
+        f.write('STD NLL:\n')
+        for item in np.std(nll_st_08, axis=0):
+            f.write("%f \n" % item)
+
+        f.write('MEAN NLL:\n')
+        for item in np.mean(nll_st_08, axis=0):
             f.write("%f \n" % item)
 
     return None #np.mean(nll_list)
@@ -591,11 +654,11 @@ def metrics_eval(args, model, test_loader, exp_name, modelname, logstep):
             rmse08.append(metrics.RMSE(inv_scaler(stacked_pred, min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
 
             # NLL
-            pdb.set_trace()
             nll08.append(nll)
 
             print('3 h', current_rmse[3], current_psnr[3], current_ssim[3])
             print('20 h', current_rmse[20], current_psnr[20], current_ssim[20])
+            pdb.set_trace()
             print()
 
             print(batch_idx)
@@ -773,25 +836,55 @@ if __name__ == "__main__":
 
     args.device = "cuda"
 
-    metrics_eval_all()
+    # metrics_eval_all()
 
-    if args.ds:
+    if args.ds or args.s > 1: # simulation run on downsampled / embedded representation 
 
         # load model
-        # with downscaling
-        srmodelname = 'model_epoch_1_step_21250'
-        srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/srmodel_checkpoints/{}.tar'.format(srmodelname)
+        if args.trainset == 'geop':
 
+            if args.s == 4:
+                srmodelname = 'model_epoch_1_step_21250'
+                srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/srmodel_checkpoints/{}.tar'.format(srmodelname)
+                stmodelname = 'model_epoch_1_step_21250'
+                stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/stmodel_checkpoints/{}.tar'.format(stmodelname)
+                
+            elif args.s == 8:
+                srmodelname = 'model_epoch_0_step_6000'
+                srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(srmodelname)
+                stmodelname = 'model_epoch_0_step_6000'
+                stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(stmodelname)
+        
+            # elif args.s == 16:
+            #    srmodelname = 
+            #    srmodelpath = 
+
+        if args.trainset == 'temp':
+
+            if args.s == 4:
+                srmodelname = 'model_epoch_7_step_4750'
+                srmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_temp_4x_2024_01_26_12_21_40/srmodel_checkpoints/{}.tar'.format(srmodelname)
+                stmodelname = 'model_epoch_7_step_4750'
+                stmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_temp_4x_2024_01_26_12_21_40/stmodel_checkpoints/{}.tar'.format(stmodelname)
+                
+            elif args.s == 8:
+                srmodelname = 'model_epoch_0_step_6000'
+                srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(srmodelname)
+                stmodelname = 'model_epoch_0_step_6000'
+                stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(stmodelname)
+        
+            # elif args.s == 16:
+            #    srmodelname = 
+            #    srmodelpath = 
+        
         srmodel = srflow.SRFlow((in_channels, height, width), args.filter_size, 3, 2,
-                                  args.bsz, args.s, args.nb, args.condch, args.nbits, 
-                                  args.noscale, args.noscaletest).to(args.device)
+                                    args.bsz, args.s, args.nb, args.condch, args.nbits, 
+                                    args.noscale, args.noscaletest).to(args.device)
                                   
         srckpt = torch.load(srmodelpath, map_location='cuda:0')
         srmodel.load_state_dict(srckpt['model_state_dict'])
         srmodel.eval()
 
-        stmodelname = 'model_epoch_1_step_21250'
-        stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/stmodel_checkpoints/{}.tar'.format(stmodelname)
         stmodel = condNF.FlowModel((in_channels, height//args.s, width//args.s),
                                 args.filter_size, args.Lst, args.Kst, args.bsz,
                                 args.lag_len, args.s, args.nb, args.device,
@@ -805,14 +898,16 @@ if __name__ == "__main__":
         srparams = sum(x.numel() for x in srmodel.parameters() if x.requires_grad)
         stparams = sum(x.numel() for x in stmodel.parameters() if x.requires_grad)
         params = srparams + stparams
-        print('Nr of Trainable Params {}:  '.format(args.device), params)
+        print('Nr of Trainable Params SR {}:  '.format(args.device), srparams)
+        print('Nr of Trainable Params ST {}:  '.format(args.device), stparams)
+        print('Total Nr of Trainable Params ST {}:  '.format(args.device), params)
 
         print("Evaluate on test split with DS ...")
         test_with_ds(srmodel, stmodel, test_loader, "flow-{}-level-{}-k".format(args.Lst, args.Kst), srmodelname, stmodelname, -999999999, args)
         # metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
 
     else:
-        # no downscaling
+        # no downscaling, simulation run on original input size
         modelname = 'model_epoch_1_step_34250'
         modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_no_ds__2023_12_05_05_51_46/model_checkpoints/{}.tar'.format(modelname)
 
@@ -830,5 +925,5 @@ if __name__ == "__main__":
         print('Nr of Trainable Params {}:  '.format(args.device), params)
         print("Evaluate on test split ...")
         # test(model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.Lst, args.Kst), modelname, -99999, args)
-        metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
+        # metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
         # metrics_eval_all()
