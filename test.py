@@ -145,7 +145,7 @@ def create_rollout(model, x_for, x_past, lead_time):
 
     # Generate the rollout sequence
     for l in range(lead_time):
-        
+
         # Concatenate the previous prediction and intermediate state
         context = torch.cat((predictions[l - 1], interm), 1)
 
@@ -155,8 +155,8 @@ def create_rollout(model, x_for, x_past, lead_time):
         # Append the predicted time step and associated negative log likelihood to the lists
         predictions.append(x[0, :, :, :, :])
         nll.append(curr_nll.item())
-        print(curr_nll.item())
-
+        # print(curr_nll.item())
+        curr_nll = 0
         # Update the intermediate state
         interm = x[0, :, :, :, :]
 
@@ -317,7 +317,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
             print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
 
-            if batch_idx == 10:
+            if batch_idx == 150:
                 break
 
     # write results to file:
@@ -387,17 +387,16 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
     color = 'viridis' if args.trainset == 'geop' else 'inferno'
 
     # Directory for saving snapshots of the test set
-    savedir = "experiments/{}_{}_{}_with_ds/snapshots/test_set/".format(exp_name, stmodelname, args.trainset)
+    savedir = "experiments/{}_{}_{}_{}x/{}/snapshots/".format(exp_name, stmodelname, args.trainset, args.s, args.bsz)
     os.makedirs(savedir, exist_ok=True)
 
     # Directory for saving experiment details
-    savedir_txt = 'experiments/{}_{}_{}_with_ds/'.format(exp_name, stmodelname, args.trainset)
+    savedir_txt = 'experiments/{}_{}_{}_{}x/{}/'.format(exp_name, stmodelname, args.trainset, args.s, args.bsz)
     os.makedirs(savedir_txt, exist_ok=True)
 
     # Set both models to evaluation mode and disable gradient computation
     srmodel.eval()
     stmodel.eval()
-
 
     with torch.no_grad():
         # Loop through batches in the test loader
@@ -542,7 +541,6 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
 
             print('Unorm RMSE, MAE score', rmse08unorm[0].mean(), mae08unorm[0].mean())
             print('Norm RMSE, MAE score:', rmse08[0].mean(), mae08[0].mean())
-            print('NLL ST:', nll_st_08)
 
             if batch_idx == 10:
                 break
@@ -658,10 +656,7 @@ def metrics_eval(args, model, test_loader, exp_name, modelname, logstep):
 
             print('3 h', current_rmse[3], current_psnr[3], current_ssim[3])
             print('20 h', current_rmse[20], current_psnr[20], current_ssim[20])
-            pdb.set_trace()
-            print()
 
-            print(batch_idx)
             if batch_idx == 200:
                 print(batch_idx)
                 break
@@ -843,22 +838,31 @@ if __name__ == "__main__":
         # load model
         if args.trainset == 'geop':
 
-            if args.s == 4:
-                srmodelname = 'model_epoch_1_step_21250'
-                srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/srmodel_checkpoints/{}.tar'.format(srmodelname)
-                stmodelname = 'model_epoch_1_step_21250'
-                stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/stmodel_checkpoints/{}.tar'.format(stmodelname)
+            if args.s == 4: 
+                print('Geop 4x')
+                srmodelname = 'model_epoch_1_step_22750'
+                srmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_geop_4x_2023_12_05_12_00_21/srmodel_checkpoints/{}.tar'.format(srmodelname)
+                stmodelname = 'model_epoch_1_step_22750'
+                stmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_geop_4x_2023_12_05_12_00_21/stmodel_checkpoints/{}.tar'.format(stmodelname)
                 
             elif args.s == 8:
-                srmodelname = 'model_epoch_0_step_6000'
-                srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(srmodelname)
-                stmodelname = 'model_epoch_0_step_6000'
-                stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(stmodelname)
+                print('Geop 8x') 
+                args.Lst = 2
+                args.Ksr = 2
+                args.Kst = 2
+                srmodelname = 'model_epoch_2_step_41000'
+                srmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_geop_8x_2024_01_28_07_43_51/srmodel_checkpoints/{}.tar'.format(srmodelname)
+                stmodelname = 'model_epoch_2_step_41000'
+                stmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_geop_8x_2024_01_28_07_43_51/stmodel_checkpoints/{}.tar'.format(stmodelname)
         
-            # elif args.s == 16:
-            #    srmodelname = 
-            #    srmodelpath = 
-
+            elif args.s == 16:
+                print('Geop 16x') 
+                args.Lst = 1
+                srmodelname = 'model_epoch_2_step_43750'
+                srmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_geop_16x_2024_01_28_07_46_41/srmodel_checkpoints/{}.tar'.format(srmodelname)
+                stmodelname = 'model_epoch_2_step_43750'
+                stmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_geop_16x_2024_01_28_07_46_41/stmodel_checkpoints/{}.tar'.format(stmodelname)
+        
         if args.trainset == 'temp':
 
             if args.s == 4:
@@ -868,14 +872,16 @@ if __name__ == "__main__":
                 stmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_temp_4x_2024_01_26_12_21_40/stmodel_checkpoints/{}.tar'.format(stmodelname)
                 
             elif args.s == 8:
-                srmodelname = 'model_epoch_0_step_6000'
-                srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(srmodelname)
-                stmodelname = 'model_epoch_0_step_6000'
-                stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(stmodelname)
+                srmodelname = 'model_epoch_8_step_5500' 
+                srmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_temp_8x_2024_01_26_12_26_44/srmodel_checkpoints/{}.tar'.format(srmodelname)
+                stmodelname = 'model_epoch_8_step_5500'
+                stmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_temp_8x_2024_01_26_12_26_44/stmodel_checkpoints/{}.tar'.format(stmodelname)
         
-            # elif args.s == 16:
-            #    srmodelname = 
-            #    srmodelpath = 
+            elif args.s == 16:
+                srmodelname = 'model_epoch_5_step_3750'
+                srmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_temp_16x_2024_01_26_12_31_55/srmodel_checkpoints/{}.tar'.format(srmodelname)
+                stmodelname = 'model_epoch_5_step_3750'
+                stmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_temp_16x_2024_01_26_12_31_55/stmodel_checkpoints/{}.tar'.format(stmodelname)
         
         srmodel = srflow.SRFlow((in_channels, height, width), args.filter_size, 3, 2,
                                     args.bsz, args.s, args.nb, args.condch, args.nbits, 

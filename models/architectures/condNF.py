@@ -213,9 +213,13 @@ class NormFlowNet(nn.Module):
                                                 logdet=logdet, logpz=logpz, eps=eps,
                                                 reverse=True, use_stored=use_stored)
 
+                        # print('Gauss', logdet+logpz)
+
                     elif isinstance(layer, FlowStep):
                         z, logdet = layer(z=z, h=h,
                                           logdet=logdet, reverse=True)
+
+                        # print('FlowStep', i, logdet)
 
                     elif isinstance(layer, modules.SqueezeTS):
                         z = z.squeeze(2)

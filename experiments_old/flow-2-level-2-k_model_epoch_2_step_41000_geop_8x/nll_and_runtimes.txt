@@ -1,0 +1,2 @@
+Avrg fwd. runtime: 0.10 
+Avrg bw runtime: 0.00
