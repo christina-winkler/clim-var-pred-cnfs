@@ -67,6 +67,7 @@ def load_era5_geop(args):
     print("Loading ERA5 hourly Geopotential data ...")
 
     dpath = args.datadir + '/geopotential_500/'
+    import pdb; pdb.set_trace()
     dataset = ERA5Geopotential500(data_path=dpath, window_size=2, args=args)
 
     n_train_samples = int(len(dataset) // (1/0.85))
@@ -128,7 +129,7 @@ def load_data(args):
     elif args.trainset == "twc":
         return load_era5_watercontent_dset(args)
 
-    elif args.trainset == "rain": 
+    elif args.trainset == "rain":
         return load_precipitation(args)
 
     else:

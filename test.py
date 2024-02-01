@@ -51,7 +51,7 @@ parser.add_argument("--epochs", type=int, default=10000,
 parser.add_argument("--max_steps", type=int, default=2000000,
                         help="For training on a large dataset.")
 parser.add_argument("--log_interval", type=int, default=100,
-                        help="Interval in which results should be logged.")
+                        help="Interval in which results should be loggeexperiments/d.")
 parser.add_argument("--val_interval", type=int, default=250,
                         help="Interval in which model should be validated.")
 
@@ -102,7 +102,7 @@ parser.add_argument("--condch", type=int, default=128//8,
                         help="# of residual-in-residual blocks in LR network.")
 
 # data
-parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
+parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
                         help="Dataset to train the model on.")
 parser.add_argument("--trainset", type=str, default="temp",
                         help="Dataset to train the model on.")
@@ -145,7 +145,7 @@ def create_rollout(model, x_for, x_past, lead_time):
 
     # Generate the rollout sequence
     for l in range(lead_time):
-        
+
         # Concatenate the previous prediction and intermediate state
         context = torch.cat((predictions[l - 1], interm), 1)
 
@@ -195,17 +195,17 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
             x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
             x_past_unorm, x_for_unorm = x_unorm[:,:2,...], x_unorm[:,2:,...]
 
-            x_resh = F.interpolate(x[:,0,...], (x_for.shape[3]//args.s, x_for.shape[4]//args.s))    
-            
+            x_resh = F.interpolate(x[:,0,...], (x_for.shape[3]//args.s, x_for.shape[4]//args.s))
+
             start = timeit.default_timer()
-            
+
             # split time series into lags and prediction window
             x_past_lr, x_for_lr = x_resh[:,:2,...], x_resh[:,2:,...]
 
             # reshape into correct format [bsz, num_channels, seq_len, height, width]
             x_past_lr = x_past_lr.unsqueeze(1).contiguous().float()
-            x_for_lr = x_for_lr.unsqueeze(1).contiguous().float()            
-            
+            x_for_lr = x_for_lr.unsqueeze(1).contiguous().float()
+
             z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
 
             stop = timeit.default_timer()
@@ -317,7 +317,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
             print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
 
-            if batch_idx == 10:
+            if batch_idx == 150:
                 break
 
     # write results to file:
@@ -334,7 +334,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
         f.write('Avrg RMSE mu08:\n')
         for item in np.mean(rmse08unorm, axis=0):
-            f.write("%f \n" % item)   
+            f.write("%f \n" % item)
 
         # f.write("%f \n" %np.std(rmse08, axis=0))
 
@@ -348,7 +348,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
         f.write('Norm Avrg RMSE mu08:\n')
         for item in np.mean(rmse08, axis=0):
-            f.write("%f \n" % item)       
+            f.write("%f \n" % item)
 
         f.write('Norm STD RMSE mu08:\n')
         for item in np.std(rmse08, axis=0):
@@ -397,7 +397,6 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
     # Set both models to evaluation mode and disable gradient computation
     srmodel.eval()
     stmodel.eval()
-
 
     with torch.no_grad():
         # Loop through batches in the test loader
@@ -460,13 +459,13 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             stacked_pred3, abs_err3, nll_st_3 = create_rollout(stmodel, x_for_lr, x_past_lr, rollout_len)
             stacked_pred4, abs_err4, nll_st_4 = create_rollout(stmodel, x_for_lr, x_past_lr, rollout_len)
 
-            # super-resolve predictions 
+            # super-resolve predictions
             stacked_pred1, _ = srmodel(xlr=stacked_pred1, eps=eps, reverse=True)
             stacked_pred2, _ = srmodel(xlr=stacked_pred2, eps=eps, reverse=True)
             stacked_pred3, _ = srmodel(xlr=stacked_pred3, eps=eps, reverse=True)
             stacked_pred4, _ = srmodel(xlr=stacked_pred4, eps=eps, reverse=True)
 
-            # compute absolute error of super-resolved predictions 
+            # compute absolute error of super-resolved predictions
             abs_err1 = torch.abs(stacked_pred1.cuda() - x_for[:,...].cuda())
             abs_err2 = torch.abs(stacked_pred2.cuda() - x_for[:,...].cuda())
             abs_err3 = torch.abs(stacked_pred3.cuda() - x_for[:,...].cuda())
@@ -503,7 +502,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             # cax = divider.append_axes("right", size="5%", pad=0.05)
             # cax.set_axis_off()
             # ax3.axis('off')
-            
+
             grid4 = torchvision.utils.make_grid(x_for.squeeze(1).permute(0,1,3,2).cpu(),normalize=True, nrow=1)
             ax2.set_title('Ground Truth', fontsize=15)
             ax2.imshow(grid4.permute(2,1,0)[:,:,0], cmap=color)
@@ -546,7 +545,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
 
             if batch_idx == 10:
                 break
-            
+
             # TODO add CRPS score
 
     # write results to file:
@@ -563,7 +562,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
 
         f.write('Avrg RMSE mu08:\n')
         for item in np.mean(rmse08unorm, axis=0):
-            f.write("%f \n" % item)   
+            f.write("%f \n" % item)
 
         # f.write("%f \n" %np.std(rmse08, axis=0))
 
@@ -577,7 +576,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
 
         f.write('Norm Avrg RMSE mu08:\n')
         for item in np.mean(rmse08, axis=0):
-            f.write("%f \n" % item)       
+            f.write("%f \n" % item)
 
         f.write('Norm STD RMSE mu08:\n')
         for item in np.std(rmse08, axis=0):
@@ -771,7 +770,7 @@ def metrics_eval_all():
                 print(line, end='')
                 line = f.readline()
 
-                if line == 'Norm Avrg RMSE mu08:\n': 
+                if line == 'Norm Avrg RMSE mu08:\n':
                     avrg_mae = lines
                     lines = []
                     continue
@@ -796,8 +795,10 @@ def metrics_eval_all():
         return avrg_rmse, std_rmse, avrg_mae, std_mae
 
     avrg_rmse_nods, std_rmse_nods, _, _ = read_metrics('flow-3-level-2-k_model_epoch_1_step_34250_wbench_nods/100STD/metric_results_normalized.txt')
-    avrg_rmse_ds, std_rmse_ds,_, _ = read_metrics('flow-3-level-2-k_model_epoch_1_step_21250_wbench_with_ds/100STD/metric_results_normalized.txt')
-    
+    avrg_rmse_4x, std_rmse_4x,_, _ = read_metrics('experiments/flow-1-level-2-k_model_epoch_2_step_43750_geop_16x/30/metric_results_normalized.txt')
+    avrg_rmse_8x, std_rmse_4x,_, _ = read_metrics('experiments/flow-2-level-2-k_model_epoch_2_step_41000_geop_8x/30/metric_results_normalized.txt')
+    avrg_rmse_16x, std_rmse_4x,_, _ = read_metrics('experiments/flow-3-level-2-k_model_epoch_1_step_22750_geop_4x/30/metric_results_normalized.txt')
+
     # pdb.set_trace()
     avrg_rmse_nods = np.array(avrg_rmse_nods)
     error = np.array(std_rmse_nods)
@@ -836,9 +837,9 @@ if __name__ == "__main__":
 
     args.device = "cuda"
 
-    # metrics_eval_all()
+    metrics_eval_all()
 
-    if args.ds or args.s > 1: # simulation run on downsampled / embedded representation 
+    if args.ds or args.s > 1: # simulation run on downsampled / embedded representation
 
         # load model
         if args.trainset == 'geop':
@@ -848,16 +849,16 @@ if __name__ == "__main__":
                 srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/srmodel_checkpoints/{}.tar'.format(srmodelname)
                 stmodelname = 'model_epoch_1_step_21250'
                 stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/stmodel_checkpoints/{}.tar'.format(stmodelname)
-                
+
             elif args.s == 8:
                 srmodelname = 'model_epoch_0_step_6000'
                 srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(srmodelname)
                 stmodelname = 'model_epoch_0_step_6000'
                 stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(stmodelname)
-        
+
             # elif args.s == 16:
-            #    srmodelname = 
-            #    srmodelpath = 
+            #    srmodelname =
+            #    srmodelpath =
 
         if args.trainset == 'temp':
 
@@ -866,21 +867,21 @@ if __name__ == "__main__":
                 srmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_temp_4x_2024_01_26_12_21_40/srmodel_checkpoints/{}.tar'.format(srmodelname)
                 stmodelname = 'model_epoch_7_step_4750'
                 stmodelpath = '/home/mila/c/christina.winkler/scratch/climsim_exp_jan2024/flow_temp_4x_2024_01_26_12_21_40/stmodel_checkpoints/{}.tar'.format(stmodelname)
-                
+
             elif args.s == 8:
                 srmodelname = 'model_epoch_0_step_6000'
                 srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(srmodelname)
                 stmodelname = 'model_epoch_0_step_6000'
                 stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(stmodelname)
-        
+
             # elif args.s == 16:
-            #    srmodelname = 
-            #    srmodelpath = 
-        
+            #    srmodelname =
+            #    srmodelpath =
+
         srmodel = srflow.SRFlow((in_channels, height, width), args.filter_size, 3, 2,
-                                    args.bsz, args.s, args.nb, args.condch, args.nbits, 
+                                    args.bsz, args.s, args.nb, args.condch, args.nbits,
                                     args.noscale, args.noscaletest).to(args.device)
-                                  
+
         srckpt = torch.load(srmodelpath, map_location='cuda:0')
         srmodel.load_state_dict(srckpt['model_state_dict'])
         srmodel.eval()
