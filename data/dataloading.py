@@ -67,7 +67,6 @@ def load_era5_geop(args):
     print("Loading ERA5 hourly Geopotential data ...")
 
     dpath = args.datadir + '/geopotential_500/'
-    import pdb; pdb.set_trace()
     dataset = ERA5Geopotential500(data_path=dpath, window_size=2, args=args)
 
     n_train_samples = int(len(dataset) // (1/0.85))

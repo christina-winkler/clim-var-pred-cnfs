@@ -747,11 +747,11 @@ def metrics_eval(args, model, test_loader, exp_name, modelname, logstep):
 
         return None
 
-def metrics_eval_all():
+def metrics_eval_all(roll_len=30):
 
     print("Creating unified plot from text files ...")
 
-    path = os.getcwd() + '/experiments/'
+    path = os.getcwd()
 
     def read_metrics(fname):
 
@@ -794,22 +794,34 @@ def metrics_eval_all():
             std_rmse = lines
         return avrg_rmse, std_rmse, avrg_mae, std_mae
 
-    avrg_rmse_nods, std_rmse_nods, _, _ = read_metrics('flow-3-level-2-k_model_epoch_1_step_34250_wbench_nods/100STD/metric_results_normalized.txt')
-    avrg_rmse_4x, std_rmse_4x,_, _ = read_metrics('experiments/flow-1-level-2-k_model_epoch_2_step_43750_geop_16x/30/metric_results_normalized.txt')
-    avrg_rmse_8x, std_rmse_4x,_, _ = read_metrics('experiments/flow-2-level-2-k_model_epoch_2_step_41000_geop_8x/30/metric_results_normalized.txt')
-    avrg_rmse_16x, std_rmse_4x,_, _ = read_metrics('experiments/flow-3-level-2-k_model_epoch_1_step_22750_geop_4x/30/metric_results_normalized.txt')
+    # avrg_rmse_nods, std_rmse_nods, _, _ = read_metrics('/flow-3-level-2-k_model_epoch_1_step_34250_wbench_nods/100STD/metric_results_normalized.txt')
+    avrg_rmse_16x, std_rmse_16x,_, _ = read_metrics('/experiments/flow-1-level-2-k_model_epoch_2_step_43750_geop_16x/{}/metric_results_normalized.txt'.format(roll_len))
+    avrg_rmse_8x, std_rmse_8x,_, _ = read_metrics('/experiments/flow-2-level-2-k_model_epoch_2_step_41000_geop_8x/{}/metric_results_normalized.txt'.format(roll_len))
+    avrg_rmse_4x, std_rmse_4x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_1_step_22750_geop_4x/{}/metric_results_normalized.txt'.format(roll_len))
 
     # pdb.set_trace()
-    avrg_rmse_nods = np.array(avrg_rmse_nods)
-    error = np.array(std_rmse_nods)
-    error_ds = np.array(std_rmse_ds)
-    xticks = np.arange(0,100,1)
-    plt.plot(avrg_rmse_nods, label='ST-Flow', color='darkviolet')
-    plt.fill_between(xticks, avrg_rmse_nods - error, avrg_rmse_nods + error, color='gray', alpha=0.2)
+    avrg_rmse_16x = np.array(avrg_rmse_16x)
+    error16x = np.array(std_rmse_16x)
 
-    avrg_rmse_ds = np.array(avrg_rmse_ds)
-    plt.plot(avrg_rmse_ds, label='ST-Flow + DS', color='deeppink')
-    plt.fill_between(xticks, avrg_rmse_ds - error_ds, avrg_rmse_ds + error_ds, color='gray', alpha=0.2)
+    avrg_rmse_8x = np.array(avrg_rmse_8x)
+    error8x = np.array(std_rmse_16x)
+
+    avrg_rmse_4x = np.array(avrg_rmse_4x)
+    error4x = np.array(std_rmse_4x)
+
+    # error = np.array(std_rmse)
+
+    xticks = np.arange(0,roll_len,1)
+
+    plt.plot(avrg_rmse_16x, label='ST-Flow - 16x', color='darkviolet')
+    plt.fill_between(xticks, avrg_rmse_16x - error16x, avrg_rmse_16x + error16x, color='gray', alpha=0.2)
+
+    plt.plot(avrg_rmse_8x, label='ST-Flow - 8x', color='deeppink')
+    plt.fill_between(xticks, avrg_rmse_8x - error8x, avrg_rmse_8x + error8x, color='gray', alpha=0.2)
+
+    plt.plot(avrg_rmse_4x, label='ST-Flow - 4x', color='mediumslateblue')
+    plt.fill_between(xticks, avrg_rmse_4x - error4x, avrg_rmse_4x + error4x, color='gray', alpha=0.2)
+
     # plt.plot(avrg_rmse_l3k3, label='ST-Flow L-3 K-3', color='mediumslateblue')
     # plt.plot(avrg_rmse_3dunet, label='3DUnet', color='lightseagreen')
     plt.grid(axis='y')
@@ -819,9 +831,8 @@ def metrics_eval_all():
     plt.ylabel('Average RMSE')
     plt.title('Z500')
     plt.show()
-    plt.savefig(path + '/avrg_rmse_all_wbench_norm.png', dpi=300)
-    # quit()
-    return None
+    plt.savefig(path + '/avrg_rmse_all_geop_norm.png') #, dpi=300)
+
 
 if __name__ == "__main__":
 
