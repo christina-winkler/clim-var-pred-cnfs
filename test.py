@@ -795,9 +795,16 @@ def metrics_eval_all(roll_len=30):
         return avrg_rmse, std_rmse, avrg_mae, std_mae
 
     # avrg_rmse_nods, std_rmse_nods, _, _ = read_metrics('/flow-3-level-2-k_model_epoch_1_step_34250_wbench_nods/100STD/metric_results_normalized.txt')
-    avrg_rmse_16x, std_rmse_16x,_, _ = read_metrics('/experiments/flow-1-level-2-k_model_epoch_2_step_43750_geop_16x/{}/metric_results_normalized.txt'.format(roll_len))
-    avrg_rmse_8x, std_rmse_8x,_, _ = read_metrics('/experiments/flow-2-level-2-k_model_epoch_2_step_41000_geop_8x/{}/metric_results_normalized.txt'.format(roll_len))
-    avrg_rmse_4x, std_rmse_4x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_1_step_22750_geop_4x/{}/metric_results_normalized.txt'.format(roll_len))
+    if args.trainset == 'geop':
+        avrg_rmse_16x, std_rmse_16x,_, _ = read_metrics('/experiments/flow-1-level-2-k_model_epoch_2_step_43750_geop_16x/{}/metric_results_normalized.txt'.format(roll_len))
+        avrg_rmse_8x, std_rmse_8x,_, _ = read_metrics('/experiments/flow-2-level-2-k_model_epoch_2_step_41000_geop_8x/{}/metric_results_normalized.txt'.format(roll_len))
+        avrg_rmse_4x, std_rmse_4x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_1_step_22750_geop_4x/{}/metric_results_normalized.txt'.format(roll_len))
+
+    elif args.trainset == 'temp':
+        avrg_rmse_16x, std_rmse_16x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_5_step_3750_temp_16x/{}/metric_results_normalized.txt'.format(roll_len))
+        avrg_rmse_8x, std_rmse_8x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_8_step_5500_temp_8x/{}/metric_results_normalized.txt'.format(roll_len))
+        avrg_rmse_4x, std_rmse_4x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_7_step_4750_temp_4x/{}/metric_results_normalized.txt'.format(roll_len))
+
 
     # pdb.set_trace()
     avrg_rmse_16x = np.array(avrg_rmse_16x)
@@ -829,9 +836,10 @@ def metrics_eval_all(roll_len=30):
     plt.legend(loc='best')
     plt.xlabel('Time-Step')
     plt.ylabel('Average RMSE')
-    plt.title('Z500')
+    plt.title('T2M')
     plt.show()
-    plt.savefig(path + '/avrg_rmse_all_geop_norm.png') #, dpi=300)
+    plt.savefig(path + '/avrg_rmse_all_temp_norm.png') #, dpi=300)
+    plt.close()
 
 
 if __name__ == "__main__":
