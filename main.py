@@ -14,10 +14,10 @@ import numpy as np
 import os
 
 # Models
-from models.architectures import condNF, srflow
+from models.architectures import condNF, srflow, unet3d
 
 # Optimization
-from optimization import trainer_stflow, trainer_stflow_ds
+from optimization import trainer_stflow, trainer_stflow_ds, trainer_unet3d
 
 import pdb
 from tensorboardX import SummaryWriter
@@ -30,12 +30,12 @@ sys.path.append("../../")
 
 def main(args):
     print(torch.cuda.device_count())
-    random.seed(0)
-    torch.manual_seed(0)
-    np.random.seed(0)
+    # random.seed(0)
+    # torch.manual_seed(0)
+    # np.random.seed(0)
 
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
 
     # Initialize device on which to run the model
     if torch.cuda.is_available():
@@ -108,6 +108,20 @@ def main(args):
                                     device=args.device,
                                     ckpt=ckpt)
 
+    elif args.modeltype == "unet3d":
+        model = unet3d.UNet3D(in_channel=in_channels).to(args.device)
+
+        if args.resume:
+            modelname = 'model_epoch_1_step_25700_wbench.tar'
+            modelpath = os.getcwd() + "/runs/unet3d_wbench_2023_08_28_11_50_43/model_checkpoints/{}".format(modelname)
+            model = unet3d.UNet3D(in_channels)
+            ckpt = torch.load(modelpath)
+            model.load_state_dict(ckpt['model_state_dict'])
+
+        trainer_unet3d.trainer(args=args, train_loader=train_loader,
+                               valid_loader=valid_loader,
+                               model=model.cuda(),
+                               device=args.device)
 
 if __name__ == "__main__":
 

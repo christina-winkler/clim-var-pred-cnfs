@@ -542,7 +542,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             print('Unorm RMSE, MAE score', rmse08unorm[0].mean(), mae08unorm[0].mean())
             print('Norm RMSE, MAE score:', rmse08[0].mean(), mae08[0].mean())
 
-            if batch_idx == 10:
+            if batch_idx == 150:
                 break
             
             # TODO add CRPS score
