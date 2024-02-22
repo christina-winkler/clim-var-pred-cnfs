@@ -771,17 +771,17 @@ def metrics_eval_all(roll_len=30):
                 line = f.readline()
 
                 if line == 'Norm Avrg RMSE mu08:\n':
-                    avrg_mae = lines
+                    std_mae = lines
                     lines = []
                     continue
 
                 if line == 'Norm STD MAE mu08:\n':
-                    avrg_rmse = lines
+                    avrg_mae = lines
                     lines = []
                     continue
 
                 if line == 'Norm STD RMSE mu08:\n':
-                    std_mae = lines
+                    avrg_rmse = lines
                     lines = []
                     continue
 
@@ -792,6 +792,8 @@ def metrics_eval_all(roll_len=30):
                     lines.append(float(line))
 
             std_rmse = lines
+
+        # avrg_rmse = std_rmse# hacky
         return avrg_rmse, std_rmse, avrg_mae, std_mae
 
     # avrg_rmse_nods, std_rmse_nods, _, _ = read_metrics('/flow-3-level-2-k_model_epoch_1_step_34250_wbench_nods/100STD/metric_results_normalized.txt')
@@ -799,12 +801,13 @@ def metrics_eval_all(roll_len=30):
         avrg_rmse_16x, std_rmse_16x,_, _ = read_metrics('/experiments/flow-1-level-2-k_model_epoch_2_step_43750_geop_16x/{}/metric_results_normalized.txt'.format(roll_len))
         avrg_rmse_8x, std_rmse_8x,_, _ = read_metrics('/experiments/flow-2-level-2-k_model_epoch_2_step_41000_geop_8x/{}/metric_results_normalized.txt'.format(roll_len))
         avrg_rmse_4x, std_rmse_4x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_1_step_22750_geop_4x/{}/metric_results_normalized.txt'.format(roll_len))
+        avrg_rmse_unet, std_rmse_unet,_, _ = read_metrics('/experiments/unet3d_geop_1x/{}/metric_results.txt'.format(roll_len))
 
     elif args.trainset == 'temp':
         avrg_rmse_16x, std_rmse_16x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_5_step_3750_temp_16x/{}/metric_results_normalized.txt'.format(roll_len))
         avrg_rmse_8x, std_rmse_8x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_8_step_5500_temp_8x/{}/metric_results_normalized.txt'.format(roll_len))
         avrg_rmse_4x, std_rmse_4x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_7_step_4750_temp_4x/{}/metric_results_normalized.txt'.format(roll_len))
-
+        avrg_rmse_unet, std_rmse_unet,_, _ = read_metrics('/experiments/unet3d_temp_1x/{}/metric_results.txt'.format(roll_len))
 
     # pdb.set_trace()
     avrg_rmse_16x = np.array(avrg_rmse_16x)
@@ -816,9 +819,13 @@ def metrics_eval_all(roll_len=30):
     avrg_rmse_4x = np.array(avrg_rmse_4x)
     error4x = np.array(std_rmse_4x)
 
+    avrg_rmse_unet = np.array(avrg_rmse_unet)
+    error_unet = np.array(std_rmse_unet)
+
     # error = np.array(std_rmse)
 
     xticks = np.arange(0,roll_len,1)
+    # import pdb; pdb.set_trace()
 
     plt.plot(avrg_rmse_16x, label='ST-Flow - 16x', color='darkviolet')
     plt.fill_between(xticks, avrg_rmse_16x - error16x, avrg_rmse_16x + error16x, color='gray', alpha=0.2)
@@ -829,18 +836,30 @@ def metrics_eval_all(roll_len=30):
     plt.plot(avrg_rmse_4x, label='ST-Flow - 4x', color='mediumslateblue')
     plt.fill_between(xticks, avrg_rmse_4x - error4x, avrg_rmse_4x + error4x, color='gray', alpha=0.2)
 
-    # plt.plot(avrg_rmse_l3k3, label='ST-Flow L-3 K-3', color='mediumslateblue')
-    # plt.plot(avrg_rmse_3dunet, label='3DUnet', color='lightseagreen')
-    plt.grid(axis='y')
-    plt.axvline(x=2, color='orangered')
-    plt.legend(loc='best')
-    plt.xlabel('Time-Step')
-    plt.ylabel('Average RMSE')
-    plt.title('T2M')
-    plt.show()
-    plt.savefig(path + '/avrg_rmse_all_temp_norm.png') #, dpi=300)
-    plt.close()
+    plt.plot(avrg_rmse_unet, label='3DUnet', color='lightseagreen')
+    plt.fill_between(xticks, avrg_rmse_unet - error_unet, avrg_rmse_unet + error_unet, color='gray', alpha=0.2)
 
+    if args.trainset=='temp':
+        plt.grid(axis='y')
+        plt.axvline(x=2, color='orangered')
+        plt.legend(loc='best')
+        plt.xlabel('Time-Step')
+        plt.ylabel('Average RMSE')
+        plt.title('T2M')
+        plt.show()
+        plt.savefig(path + '/avrg_rmse_all_temp.png') #, dpi=300)
+        plt.close()
+
+    elif args.trainset=='geop':
+        plt.grid(axis='y')
+        plt.axvline(x=2, color='orangered')
+        plt.legend(loc='best')
+        plt.xlabel('Time-Step')
+        plt.ylabel('Average RMSE')
+        plt.title('500 hPa')
+        plt.show()
+        plt.savefig(path + '/avrg_rmse_all_geop.png') #, dpi=300)
+        plt.close()
 
 if __name__ == "__main__":
 

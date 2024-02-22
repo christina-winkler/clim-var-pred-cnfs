@@ -53,7 +53,7 @@ def load_era5_temp(args):
     valset = torch.utils.data.Subset(dataset, val_idcs)
     testset = torch.utils.data.Subset(dataset, test_idcs)
 
-    train_loader = data_utils.DataLoader(trainset, args.bsz, shuffle=True,
+    train_loader = data_utils.DataLoader(trainset, args.bsz, shuffle=False,
                                          drop_last=True)
     val_loader = data_utils.DataLoader(valset, args.bsz, shuffle=True,
                                        drop_last=True)
@@ -80,6 +80,7 @@ def load_era5_geop(args):
     trainset = torch.utils.data.Subset(dataset, train_idcs)
     valset = torch.utils.data.Subset(dataset, val_idcs)
     testset = torch.utils.data.Subset(dataset, test_idcs)
+
 
     train_loader = data_utils.DataLoader(trainset, args.bsz, shuffle=True,
                                          drop_last=True)
