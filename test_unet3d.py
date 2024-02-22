@@ -8,7 +8,7 @@ import torchvision
 from torchvision import transforms
 import torch.nn as nn
 import sys
-import timeit # https://stackoverflow.com/questions/5622976/how-do-you-calculate-program-run-time-in-python
+import timeit
 sys.path.append("../../")
 
 from os.path import exists, join
@@ -89,12 +89,12 @@ parser.add_argument("--condch", type=int, default=128,
                     help="# of residual-in-residual blocks in LR network.")
 
 # data
-parser.add_argument("--datadir", type=str, default="data",
+parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
                     help="Dataset to train the model on.")
-parser.add_argument("--trainset", type=str, default="wbench",
+parser.add_argument("--trainset", type=str, default="temp",
                     help="Dataset to train the model on.")
-parser.add_argument("--testset", type=str, default="wbench",
-                    help="Specify test dataset")
+# parser.add_argument("--testset", type=str, default="wbench",
+#                     help="Specify test dataset")
 # experiments
 parser.add_argument("--exp_name", type=str, default="3level",
                     help="Name of the experiment.")
@@ -163,17 +163,11 @@ def test(model, test_loader, exp_name, logstep, args):
             pred_multiroll = []
             abs_err_multiroll = []
 
-            # for i in range(4):
-            #     pred, err = create_rollout(model, out, x_for, x_past, rollout_len)
-            #     pred_multiroll.append(pred)
-            #     abs_err_multiroll.append(err)
-
             stacked_pred1, abs_err1 = create_rollout(model, out, x_for, x_past, rollout_len)
             stacked_pred2, abs_err2 = create_rollout(model, out, x_for, x_past, rollout_len)
             stacked_pred3, abs_err3 = create_rollout(model, out, x_for, x_past, rollout_len)
             stacked_pred4, abs_err4 = create_rollout(model, out, x_for, x_past, rollout_len)
 
-            import pdb; pdb.set_trace()
             std = (abs_err1 **2 + abs_err2**2 + abs_err3**2 + abs_err4**2)/4
             stack_pred_multiroll = torch.stack((stacked_pred1,stacked_pred2,stacked_pred3,stacked_pred4), dim=0).squeeze(2)
 
@@ -299,14 +293,14 @@ def test(model, test_loader, exp_name, logstep, args):
 
 def metrics_eval(model, test_loader, exp_name, modelname, logstep):
 
-    print("Metric evaluation on {}...".format(args.testset))
+    print("Metric evaluation on {}...".format(args.trainset))
 
     # storing metrics
-    ssim = [0] * args.bsz
-    psnr = [0] * args.bsz
-    mmd = [0] * args.bsz
-    emd = [0] * args.bsz
-    rmse = [0] * args.bsz
+    # ssim = [0] * args.bsz
+    # psnr = [0] * args.bsz
+    # mmd = [0] * args.bsz
+    # emd = [0] * args.bsz
+    rmse = [] 
 
     savedir = os.getcwd() + '/experiments/unet3d/'
     os.makedirs(savedir, exist_ok=True)
@@ -318,13 +312,13 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             x = item[0]
 
             # split time series into context and prediction window
-            x_past, x_for = x[:,:-1,...].float().cuda(), x[:,-1,:,:,:].unsqueeze(1).cuda().float()
+            x_past, x_for =  x[:,:, :2,...].permute(0,2,1,3,4).to('cuda'), x[:,:,2:,...].to('cuda')
 
             # track metric over forecasting period
             print("Forecast ... ")
             lead_time = args.bsz -1
             predictions = []
-            past = x_past[0,:,:,:,:].unsqueeze(0).cuda()
+            past = x_past[0,...].unsqueeze(0).cuda()
             out = model.forward(past)
             predictions.append(out)
 
@@ -346,22 +340,13 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             # psnr = list(map(add, current_psnr, psnr))
             # print(psnr[0], "  ", ssim[0])
 
-            # MMD
-            current_mmd = metrics.MMD(stacked_pred.squeeze(1).cuda(), x_for.squeeze(1))
-            mmd = list(map(add, current_mmd.cpu().numpy(), mmd))
-
             # RMSE
-            max_value = 315.91873
-            min_value = 241.22385
-            x_new = stacked_pred * (max_value - min_value) + min_value
-            x_for_new = x_for * (max_value - min_value) + min_value
-            # pdb.set_trace()
-            current_rmse = metrics.RMSE(x_new.squeeze(1).cuda(), x_for_new.squeeze(1)) / 10
-            rmse = list(map(add, current_rmse.cpu().numpy(), rmse))
+            # x_new = stacked_pred * (max_value - min_value) + min_value
+            # x_for_new = x_for * (max_value - min_value) + min_value
+            
+            rmse.append(metrics.RMSE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
 
-            print(current_rmse[20], current_rmse[20], current_mmd[0])
-            print(batch_idx)
-            if batch_idx == 20:
+            if batch_idx == 100:
                 print(batch_idx)
                 break
 
@@ -370,8 +355,9 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
         # avrg_ssim = list(map(lambda x: x/len(test_loader), ssim))
         # # compute average PSNR for each temperature map on predicted day t
         # avrg_psnr = list(map(lambda x: x/len(test_loader), psnr))
-        avrg_rmse = list(map(lambda x: x/20, rmse)) #len(test_loader), rmse))
-        avrg_mmd = list(map(lambda x: x/20, mmd)) # len(test_loader), mmd))
+        # pdb.set_trace()
+        # avrg_rmse = list(map(lambda x: x/100, rmse)) #len(test_loader), rmse)) TODO improve this too complicated haha
+        # avrg_mmd = list(map(lambda x: x/20, mmd)) # len(test_loader), mmd))
 
         # plt.plot(avrg_ssim, label='3DUnet Best SSIM')
         # plt.grid(axis='y')
@@ -391,26 +377,26 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
         # plt.savefig(savedir + 'plots/avrg_psnr.png', dpi=300)
         # plt.close()
 
-        plt.plot(avrg_rmse, label='3DUnet RMSE')
-        plt.grid(axis='y')
-        plt.axvline(x=1, color='brown')
-        plt.legend(loc='upper right')
-        plt.xlabel('Time-Step')
-        plt.ylabel('Average RMSE')
-        plt.savefig(savedir + 'plots/avrg_rmse.png', dpi=300)
-        plt.close()
+        # plt.plot(avrg_rmse, label='3DUnet RMSE')
+        # plt.grid(axis='y')
+        # plt.axvline(x=1, color='brown')
+        # plt.legend(loc='upper right')
+        # plt.xlabel('Time-Step')
+        # plt.ylabel('Average RMSE')
+        # plt.savefig(savedir + 'plots/avrg_rmse.png', dpi=300)
+        # plt.close()
 
-        plt.plot(avrg_mmd, label='3DUnet MMD')
-        plt.grid(axis='y')
-        plt.axvline(x=1, color='brown')
-        plt.legend(loc='upper right')
-        plt.xlabel('Time-Step')
-        plt.ylabel('Average RMSE')
-        plt.savefig(savedir + 'plots/avrg_mmd.png', dpi=300)
-        plt.close()
+        # plt.plot(avrg_mmd, label='3DUnet MMD')
+        # plt.grid(axis='y')
+        # plt.axvline(x=1, color='brown')
+        # plt.legend(loc='upper right')
+        # plt.xlabel('Time-Step')
+        # plt.ylabel('Average RMSE')
+        # plt.savefig(savedir + 'plots/avrg_mmd.png', dpi=300)
+        # plt.close()
 
         # Write metric results to a file in case to recreate plots
-        with open(savedir + 'plots/metric_results.txt','w') as f:
+        with open(savedir + 'metric_results.txt','w') as f:
             # f.write('Avrg SSIM over forecasting period:\n')
             # for item in avrg_ssim:
             #     f.write("%f \n" % item)
@@ -419,13 +405,17 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             # for item in avrg_psnr:
             #     f.write("%f \n" % item)
 
-            f.write('Avrg RMSE over forecasting period:\n')
-            for item in avrg_rmse:
+            f.write('Avrg RMSE:\n')
+            for item in np.mean(rmse, axis=0):
+                f.write("%f \n" % item)  
+
+            f.write('STD RMSE:\n')
+            for item in np.std(rmse, axis=0):
                 f.write("%f \n" % item)
 
-            f.write('Avrg MMD over forecasting period:\n')
-            for item in avrg_mmd:
-                f.write("%f \n" % item)
+            # f.write('Avrg MMD over forecasting period:\n')
+            # for item in avrg_mmd:
+            #     f.write("%f \n" % item)
 
         return None
 
@@ -439,14 +429,14 @@ if __name__ == "__main__":
     print('Load model ...')
 
     # Temperature
-    # modelname = 'model_epoch_24_step_16200_small_era5.tar'
-    # modelpath = os.getcwd() + "/experiments/unet3d/models/{}".format(modelname)
+    modelname = 'model_epoch_1_step_1200.tar'
+    modelpath = os.getcwd() + "/runs/unet3d_temp_2024_02_09_09_21_40/model_checkpoints/{}".format(modelname)
 
-    # WBench
-    modelname = 'model_epoch_1_step_25700_wbench.tar'
-    modelpath = os.getcwd() + "/experiments/unet3d/models/{}".format(modelname)
+    # Geopotential
+    # modelname = 'model_epoch_0_step_2400.tar'
+    # modelpath = os.getcwd() + "/runs/unet3d_geop_2024_02_09_14_42_18/model_checkpoints/{}".format(modelname)
 
-    model = unet3d.UNet3D(in_channels)
+    model = unet3d.UNet3D(in_channel=1).cuda()
     ckpt = torch.load(modelpath)
     model.load_state_dict(ckpt['model_state_dict'])
     model.eval()
@@ -455,5 +445,5 @@ if __name__ == "__main__":
     print('Nr of Trainable Params on {}:  '.format('cuda'), params)
     print("Evaluate 3DUnet on test split ...")
 
-    test(model.cuda(), test_loader, "unet3d", -99999, args)
-    # metrics_eval(model.cuda(),test_loader, "3dunet", modelname, -99999)
+    # test(model.cuda(), test_loader, "unet3d", -99999, args)
+    metrics_eval(model.cuda(),test_loader, "3dunet", modelname, -99999)

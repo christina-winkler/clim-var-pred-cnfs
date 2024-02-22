@@ -14,10 +14,10 @@ import numpy as np
 import os
 
 # Models
-from models.architectures import condNF, srflow, unet3d
+from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline
 
 # Optimization
-from optimization import trainer_stflow, trainer_stflow_ds, trainer_unet3d
+from optimization import trainer_stflow, trainer_stflow_ds, trainer_unet3d, trainer_convlstm
 
 import pdb
 from tensorboardX import SummaryWriter
@@ -76,7 +76,6 @@ def main(args):
             ckpt = torch.load(modelpath)
             model.load_state_dict(ckpt['model_state_dict'])
 
-
         if args.ds or args.s > 1:
 
             sr_model = srflow.SRFlow((in_channels, height, width), args.filter_size, args.Lsr, args.Ksr,
@@ -109,6 +108,7 @@ def main(args):
                                     ckpt=ckpt)
 
     elif args.modeltype == "unet3d":
+        print('Training 3DUNet!')
         model = unet3d.UNet3D(in_channel=in_channels).to(args.device)
 
         if args.resume:
@@ -123,12 +123,32 @@ def main(args):
                                model=model.cuda(),
                                device=args.device)
 
+    elif args.modeltype == "convlstm":
+        print('Training ConvLSTM!')
+        model = conv_lstm_baseline.ConvLSTM(in_channels=in_channels, hidden_channels=4*32, out_channels=1).to(args.device)
+
+        if args.resume:
+            modelname = 'model_epoch_1_step_25700_wbench.tar'
+            modelpath = os.getcwd() + "/runs/unet3d_wbench_2023_08_28_11_50_43/model_checkpoints/{}".format(modelname)
+            model = conv_lstm.ConvLSTM(in_channels)
+            ckpt = torch.load(modelpath)
+            model.load_state_dict(ckpt['model_state_dict'])
+
+        trainer_convlstm.trainer(args=args, train_loader=train_loader,
+                                 valid_loader=valid_loader,
+                                 model=model.cuda(),
+                                 device=args.device)
+
+
+
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
     # train configs
-    parser.add_argument("--modeltype", type=str, default="flow",
+    parser.add_argument("--modeltype", type=str, default="convLSTM",
                         help="Specify modeltype you would like to train [flow, diff, unet3d, convLSTM].")
     parser.add_argument("--model_path", type=str, default="runs/",
                         help="Directory where models are saved.")

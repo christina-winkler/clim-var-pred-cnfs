@@ -65,7 +65,8 @@ class ConvLSTM(nn.Module):
         """
         super(ConvLSTM, self).__init__()
         self.out_channels = out_channels
-        self.convLSTMcell = ConvLSTMCell(in_channels, hidden_channels, out_channels,padding=padding)
+        self.convLSTMcell = ConvLSTMCell(in_channels, hidden_channels, out_channels, padding=padding)
+        self.change_time = nn.Conv3d(2, 1, 3, padding=1)
 
     def forward(self, x):
 
@@ -79,11 +80,13 @@ class ConvLSTM(nn.Module):
         for time_step in range(seq_len):
             h,c = self.convLSTMcell(x[:,:,time_step,:,:].unsqueeze(1),(h,c))
             output[:,:,time_step,:,:] = h.squeeze(2)
-        return output
+        
+        out = self.change_time(output.permute(0,2,1,3,4))
+        return out
 
 class ConvLSTMCell(nn.Module):
 
-    def __init__(self, in_channels, hidden_channels, out_channels, padding=0, num_layers=3):
+    def __init__(self, in_channels, hidden_channels, out_channels, padding=0, num_layers=5):
         """
         Implements convolutional LSTM cell.
         Args:
@@ -93,8 +96,8 @@ class ConvLSTMCell(nn.Module):
         super(ConvLSTMCell, self).__init__()
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
-        self.gated_conv_net = GatedConvNet(in_channels, hidden_channels,
-                                           2*in_channels, padding, num_layers)
+        self.gated_conv_net = GatedConvNet(2*in_channels, hidden_channels,
+                                           4*in_channels, 1, num_layers)
         self.init_parameters()
 
     def init_parameters(self):
@@ -170,7 +173,6 @@ class GatedConvNet(nn.Module):
         # change initalization
         self.nn[-1].weight.data.zero_()
         self.nn[-1].bias.data.zero_()
-
 
     def forward(self, x):
         out = self.nn(x.cuda()).cuda()

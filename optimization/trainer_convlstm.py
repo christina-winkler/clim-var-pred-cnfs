@@ -13,7 +13,7 @@ import torchvision
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
-from optimization.validation_unet3d import validate
+from optimization.validation_convlstm import validate
 
 import sys
 sys.path.append("../../")
@@ -46,9 +46,9 @@ def trainer(args, train_loader, valid_loader, model,
                                                 step_size=2 * 10 ** 5,
                                                 gamma=0.5)
     state=None
-
+    color = 'inferno' if args.trainset == 'temp' else 'viridis'
     model.to(device)
-    color = 'inferno' if args.trainset == 'era5' else 'viridis'
+
     params = sum(x.numel() for x in model.parameters() if x.requires_grad)
     print('Nr of Trainable Params {}:  '.format(args.device), params)
 
@@ -63,11 +63,25 @@ def trainer(args, train_loader, valid_loader, model,
             x = item[0].to(device)
 
             # split time series into lags and prediction window
-            x_past, x_for =  x[:,:, :2,...].permute(0,2,1,3,4).to(args.device), x[:,:,2:,...].to(args.device)
-            # x_past, x_for = x[:,:-1,...].float(), x[:,-1,:,:,:].unsqueeze(1).float()
+            x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
+
+            # reshape into correct format [bsz, num_channels, seq_len, height, width]
+            # x_past = x_past.permute(0,2,1,3,4).contiguous().float().to(device)
+            # x_for = x_for.permute(0,2,1,3,4).contiguous().float().to(device)
 
             model.train()
             optimizer.zero_grad()
+
+            # We need to init the underlying module in the dataparallel object
+            # For ActNorm layers.
+            if needs_init and torch.cuda.device_count() > 1:
+                bsz_p_gpu = args.bsz // torch.cuda.device_count()
+                _, _ = model.module.forward(x_hr=y[:bsz_p_gpu],
+                                            xlr=x[:bsz_p_gpu],
+                                            logdet=0)
+
+
+            # pdb.set_trace()                                
 
             out = model.forward(x_past)
             mse_loss = mse(out, x_for)
@@ -103,21 +117,21 @@ def trainer(args, train_loader, valid_loader, model,
                                          valid_loader,
                                          args.experiment_dir,
                                          "{}".format(step),
-                                         args)
+                                         args,
+                                         device=device)
 
                     writer.add_scalar("mse_valid", mse_valid.mean().item(),
                                        logging_step)
 
                     # save checkpoint only when validation nll lower than previous model
-                    if mse_valid < prev_mse_epoch:
-                        print("Saving Checkpoint !")
-                        PATH = args.experiment_dir + '/model_checkpoints/'
-                        os.makedirs(PATH, exist_ok=True)
-                        torch.save({'epoch': epoch,
+                    print("Saving Checkpoint !")
+                    PATH = args.experiment_dir + '/model_checkpoints/'
+                    os.makedirs(PATH, exist_ok=True)
+                    torch.save({'epoch': epoch,
                                     'model_state_dict': model.state_dict(),
                                     'optimizer_state_dict': optimizer.state_dict(),
                                     'loss': mse_valid.mean()}, PATH+ f"model_epoch_{epoch}_step_{step}.tar")
-                        prev_mse_epoch = mse_valid
+                    prev_mse_epoch = mse_valid
 
                     logging_step += 1
 

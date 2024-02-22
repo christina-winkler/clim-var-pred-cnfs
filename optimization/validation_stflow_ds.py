@@ -49,7 +49,7 @@ def validate(srmodel, stmodel, val_loader, exp_name, logstep, args):
             z, state, nll_st = stmodel.forward(x=x_for_lr, x_past=x_past_lr, state=state)
 
             # run SR model
-            x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
+            x_for_hat_lr, _ , _= stmodel._predict(x_past_lr.cuda(), state)
             z, nll_sr = srmodel.forward(x_hr=x_for.squeeze(1), xlr=x_for_hat_lr.squeeze(1))
 
             # Generative loss
@@ -61,16 +61,16 @@ def validate(srmodel, stmodel, val_loader, exp_name, logstep, args):
             # ---------------------- Evaluate Predictions---------------------- #
 
         # evalutae for different temperatures (just for last batch, perhaps change l8er)
-        mu0, _ = stmodel._predict(x_past_lr, state, eps=0)
-        mu05, _ = stmodel._predict(x_past_lr, state, eps=0.5)
-        mu08, _ = stmodel._predict(x_past_lr, state, eps=0.8)
-        mu1, _ = stmodel._predict(x_past_lr, state, eps=1)
+        mu0, *_ = stmodel._predict(x_past_lr, state, eps=0)
+        mu05, *_ = stmodel._predict(x_past_lr, state, eps=0.5)
+        mu08, *_ = stmodel._predict(x_past_lr, state, eps=0.8)
+        mu1, *_ = stmodel._predict(x_past_lr, state, eps=1)
 
         # super-resolve
-        mu0, _, _ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=0)
-        mu05, _, _ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=0.5)
-        mu08, _, _ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=0.8)
-        mu1, _, _ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=1.0)
+        mu0, *_ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=0)
+        mu05, *_ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=0.5)
+        mu08, *_ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=0.8)
+        mu1, *_ = srmodel(x_hr=x_for, xlr=mu1.squeeze(1), reverse=True, eps=1.0)
         
         savedir = "{}/snapshots/validationset_{}/".format(exp_name, args.trainset)
 

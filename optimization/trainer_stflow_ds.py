@@ -119,7 +119,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
             z, state, nll_st = stmodel.forward(x=x_for_lr, x_past=x_past_lr, state=state)
 
             # run SR model
-            x_for_hat_lr, _ = stmodel._predict(x_past_lr.cuda(), state)
+            x_for_hat_lr, _ , _= stmodel._predict(x_past_lr.cuda(), state)
             z, nll_sr = srmodel.forward(x_hr=x_for.squeeze(1), xlr=x_for_hat_lr.squeeze(1))
 
             # Compute gradients
@@ -204,7 +204,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
 
                      # predicting a new sample based on context window
                     print("Predicting ...")
-                    predictions, _ = stmodel._predict(x_past_lr.cuda(), state) # TODO: sample longer trajectories
+                    predictions, _, _ = stmodel._predict(x_past_lr.cuda(), state) # TODO: sample longer trajectories
                     grid_pred = torchvision.utils.make_grid(predictions[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
                     array_imgs_pred = np.array(grid_pred.permute(2,1,0)[:,:,0].unsqueeze(2))
                     cmap_pred = np.apply_along_axis(cm.inferno, 2, array_imgs_pred)

@@ -14,48 +14,47 @@ from os.path import exists, join
 import matplotlib.pyplot as plt
 import pdb
 
-def validate(model, val_loader, exp_name, logstep, args):
+def validate(model, val_loader, exp_name, logstep, args, device):
 
-    random.seed(0)
-    torch.manual_seed(0)
-    np.random.seed(0)
+    # random.seed(0)
+    # torch.manual_seed(0)
+    # np.random.seed(0)
 
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    color = 'inferno' if args.trainset == 'era5' else 'viridis'
-
-    print('Model validation ...')
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
 
     state = None
     loss = nn.MSELoss()
     loss_list = []
     model.eval()
+    color = 'inferno' if args.trainset == 'temp' else 'viridis'
     with torch.no_grad():
         for batch_idx, item in enumerate(val_loader):
 
             x = item[0]
 
             # split time series into context and prediction window
-            # x_past, x_for = x[:,:-1,...].float().cuda(), x[:,-1,:,:,:].unsqueeze(1).cuda().float()
-            x_past, x_for = x[:,:, :2,...].permute(0,2,1,3,4).to(args.device), x[:,:,2:,...].to(args.device)
-
+            x_past, x_for = x[:,:, :2,...].cuda(), x[:,:,2:,...].cuda()
             out = model.forward(x_past)
             l1_loss = loss(out, x_for)
 
             # Generative loss
             loss_list.append(l1_loss.mean().detach().cpu().numpy())
 
+            print(batch_idx)
+
+            if batch_idx == 2:
+                break
+
             # ---------------------- Evaluate Predictions---------------------- #
-            break
 
         # visualize prediction
-        prediction = model(x_past)
+        prediction = model.forward(x_past)
 
-        savedir = "{}/snapshots/predicted_frames_{}/".format(
+        savedir = "{}/snapshots/validation/predicted_frames_{}/".format(
                         exp_name, args.trainset)
 
         os.makedirs(savedir, exist_ok=True)
-
         grid_ground_truth = torchvision.utils.make_grid(x_for.squeeze(1).cpu(), nrow=3)
         plt.figure()
         plt.imshow(grid_ground_truth.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
@@ -71,11 +70,11 @@ def validate(model, val_loader, exp_name, logstep, args):
         plt.title("Frame at t")
         plt.savefig(savedir + "_x_t_logstep_{}.png".format(logstep), dpi=300)
 
-        grid_pred = torchvision.utils.make_grid(prediction[:,0,:,:,:].cpu(), nrow=3)
+        grid_pred = torchvision.utils.make_grid(prediction[:,0,:,:].cpu(), nrow=3)
         plt.figure()
         plt.imshow(grid_pred.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
         plt.axis('off')
-        plt.title("Prediction at t+1, mu=0")
+        plt.title("Prediction at t+1")
         plt.savefig(savedir + "prediction_logstep_{}.png".format(logstep), dpi=300)
 
     print("Average Validation MSE-Loss:", np.mean(loss_list))
