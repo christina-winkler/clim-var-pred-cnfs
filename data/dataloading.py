@@ -128,7 +128,7 @@ def load_data(args):
     elif args.trainset == "twc":
         return load_era5_watercontent_dset(args)
 
-    elif args.trainset == "rain": 
+    elif args.trainset == "rain":
         return load_precipitation(args)
 
     else:

@@ -80,7 +80,7 @@ def main(args):
 
             sr_model = srflow.SRFlow((in_channels, height, width), args.filter_size, args.Lsr, args.Ksr,
                                       args.bsz, args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
-            
+
             st_model = condNF.FlowModel((in_channels, height//args.s, width//args.s),
                                         args.filter_size, args.Lst, args.Kst, args.bsz,
                                         args.lag_len, args.s, args.nb, args.device,
@@ -210,7 +210,7 @@ if __name__ == "__main__":
                         help="# of residual-in-residual blocks in LR network.")
 
     # data
-    parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
+    parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
                         help="Dataset to train the model on.")
     parser.add_argument("--trainset", type=str, default="geop",
                         help="Dataset to train the model on.")
