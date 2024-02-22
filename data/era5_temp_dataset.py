@@ -86,7 +86,7 @@ class ERA5T2MData(Dataset):
         self.data = xr.open_zarr(self.data_path)['t2m']
 
         if self.transform is None:
-            self.transform_x = transforms.Compose([transforms.ToTensor(), MinMaxScaler(values_range=(0, 1))])  
+            self.transform_x = transforms.Compose([transforms.ToTensor(), MinMaxScaler(values_range=(0, 1))])
             self.transform_y = transforms.Compose([XRToTensor(), MinMaxScaler(values_range=(0, 1))])
 
     def __len__(self):
@@ -99,6 +99,7 @@ class ERA5T2MData(Dataset):
         latitude = np.array(y.coords['latitude'])
         longitude = np.array(y.coords['longitude'])
 
+
         if self.s > 1: # resize frames to smaller resolution
             x_resh = np.zeros((y.shape[0], y.shape[1]//self.s, y.shape[2]//self.s))
             for i in range(self.window_size+1):
@@ -107,7 +108,7 @@ class ERA5T2MData(Dataset):
 
         else: # operate on original input resolution
             x=y
-        
+
         return self.transform_y(y), torch.FloatTensor(y.values), str(time), latitude, longitude
 
 # datashape = ERA5T2MData('/home/christina/Documents/research/auto-encoding-normalizing-flows/code/data/ftp.bgc-jena.mpg.de/pub/outgoing/aschall/data.zarr')[0][0].shape

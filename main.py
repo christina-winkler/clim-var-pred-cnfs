@@ -60,7 +60,6 @@ def main(args):
         train_loader, valid_loader, test_loader, args = dataloading.load_data(args)
         in_channels = 1 # next(iter(train_loader))[0].shape[2]
 
-
     print("Start training {} on {}:".format(args.modeltype, args.trainset))
 
     if args.modeltype == "flow":
