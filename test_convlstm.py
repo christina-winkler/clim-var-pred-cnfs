@@ -12,6 +12,7 @@ import timeit
 sys.path.append("../../")
 
 from os.path import exists, join
+from typing import Tuple, Callable
 import matplotlib.pyplot as plt
 from matplotlib import transforms
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -96,7 +97,7 @@ parser.add_argument("--trainset", type=str, default="temp",
 # parser.add_argument("--testset", type=str, default="wbench",
 #                     help="Specify test dataset")
 # experiments
-parser.add_argument("--exp_name", type=str, default="convlstm",
+parser.add_argument("--exp_name", type=str, default="convlstm_1x",
                     help="Name of the experiment.")
 
 args = parser.parse_args()
@@ -291,6 +292,15 @@ def test(model, test_loader, exp_name, logstep, args):
     print("Average Test MSE-Loss:", np.mean(loss_list))
     return np.mean(loss_list)
 
+class InverseMinMaxScaler:
+    max_value: float = 315.91873
+    min_value: float = 241.22385
+    values_range: Tuple[int, int] = (0, 1)
+
+    def __call__(self, y):
+        x = y * (self.max_value - self.min_value) + self.min_value
+        return x
+
 def metrics_eval(model, test_loader, exp_name, modelname, logstep):
 
     print("Metric evaluation on {}...".format(args.trainset))
@@ -300,7 +310,9 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
     # psnr = [0] * args.bsz
     # mmd = [0] * args.bsz
     # emd = [0] * args.bsz
-    rmse = [] 
+    norm_rmse = [] 
+    rmse = []
+    w_rmse = []
 
     savedir = os.getcwd() + '/experiments/convlstm/'
     os.makedirs(savedir, exist_ok=True)
@@ -312,7 +324,7 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             x = item[0]
 
             # split time series into context and prediction window
-            x_past, x_for =  x[:,:, :2,...].permute(0,2,1,3,4).to('cuda'), x[:,:,2:,...].to('cuda')
+            x_past, x_for = x[:,:, :2,...].to('cuda'), x[:,:,2:,...].to('cuda')
 
             # track metric over forecasting period
             print("Forecast ... ")
@@ -322,11 +334,11 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             out = model.forward(past)
             predictions.append(out)
 
-            interm = x_past[0,1,:,:].unsqueeze(0).unsqueeze(1)
+            interm = x_past[0,:,1,...].unsqueeze(0).unsqueeze(1)
 
             for l in range(lead_time):
                 context = torch.cat((predictions[l], interm), 1)
-                predictions.append(model(context))
+                predictions.append(model(context.permute(0,2,1,3,4)))
                 interm = predictions[-1][:,0,:,:,:].unsqueeze(1)
 
             stacked_pred = torch.stack(predictions, dim=0).squeeze(1)
@@ -341,10 +353,21 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             # print(psnr[0], "  ", ssim[0])
 
             # RMSE
-            # x_new = stacked_pred * (max_value - min_value) + min_value
-            # x_for_new = x_for * (max_value - min_value) + min_value
-            
-            rmse.append(metrics.RMSE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
+            latitude, longitude = item[3], item[4]
+            x_for_new = item[1][:,2:,...].to('cuda')
+            if args.trainset == 'temp':
+                inv_scaler = InverseMinMaxScaler()
+                x_new = inv_scaler(stacked_pred).squeeze(1)
+
+            if args.trainset == 'geop':     
+                x_new = stacked_pred * (x_for_new.max() - x_for_new.min()) + x_for_new.min()
+
+                      
+            w_rmse.append(metrics.weighted_RMSE(x_new.cpu(), x_for_new.cpu(), latitude, longitude))
+            pdb.set_trace()
+            print(metrics.RMSE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
+            norm_rmse.append(metrics.RMSE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
+            rmse.append(metrics.RMSE(x_new, x_for_new.cuda()).mean(1).detach().cpu().numpy())
 
             if batch_idx == 100:
                 print(batch_idx)
@@ -413,6 +436,14 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             for item in np.std(rmse, axis=0):
                 f.write("%f \n" % item)
 
+            f.write('Norm Avrg RMSE:\n')
+            for item in np.mean(norm_rmse, axis=0):
+                f.write("%f \n" % item)  
+
+            f.write('Norm STD RMSE:\n')
+            for item in np.std(norm_rmse, axis=0):
+                f.write("%f \n" % item)
+
             # f.write('Avrg MMD over forecasting period:\n')
             # for item in avrg_mmd:
             #     f.write("%f \n" % item)
@@ -435,8 +466,8 @@ if __name__ == "__main__":
 
     elif args.trainset == 'geop':
         # geopotential
-        modelname = 'model_epoch_0_step_2400.tar'
-        modelpath = os.getcwd() + "/runs/unet3d_geop_2024_02_09_14_42_18/model_checkpoints/{}".format(modelname)
+        modelname = 'model_epoch_1_step_31100.tar'
+        modelpath = "/home/mila/c/christina.winkler/climsim_ds/runs/convlstm_geop_2024_02_12_11_21_35/model_checkpoints/{}".format(modelname)
 
     model = conv_lstm_baseline.ConvLSTM(in_channels=in_channels, hidden_channels=4*32, out_channels=1).cuda()
     ckpt = torch.load(modelpath)
@@ -445,7 +476,7 @@ if __name__ == "__main__":
 
     params = sum(x.numel() for x in model.parameters() if x.requires_grad)
     print('Nr of Trainable Params on {}:  '.format('cuda'), params)
-    print("Evaluate 3DUnet on test split ...")
+    print("Evaluate ConvLSTM on test split ...")
 
     # test(model.cuda(), test_loader, "unet3d", -99999, args)
     metrics_eval(model.cuda(),test_loader, "3dunet", modelname, -99999)

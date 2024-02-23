@@ -46,10 +46,10 @@ def validate(model, val_loader, exp_name, logstep, args):
             # ---------------------- Evaluate Predictions---------------------- #
 
         # evalutae for different temperatures (just for last batch, perhaps change l8er)
-        mu0, _ = model._predict(x_past, state, eps=0)
-        mu05, _ = model._predict(x_past, state, eps=0.5)
-        mu08, _ = model._predict(x_past, state, eps=0.8)
-        mu1, _ = model._predict(x_past, state, eps=1)
+        mu0, *_ = model._predict(x_past, state, eps=0)
+        mu05, *_ = model._predict(x_past, state, eps=0.5)
+        mu08, *_ = model._predict(x_past, state, eps=0.8)
+        mu1, *_ = model._predict(x_past, state, eps=1)
 
         savedir = "{}/snapshots/validationset_{}/".format(exp_name, args.trainset)
 

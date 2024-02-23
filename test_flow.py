@@ -177,6 +177,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
     rmse08 = []
     rmse08unorm = []
     mae08unorm = []
+    w_rmse = []
     avrg_fwd_time = []
     avrg_bw_time = []
     model.eval()
@@ -190,6 +191,8 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
         for batch_idx, item in enumerate(test_loader):
 
             x = item[0].to(args.device)
+            latitude, longitude = item[3], item[4]
+            
             x_unorm = item[1].to(args.device)
 
             x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
@@ -314,6 +317,9 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
             # RMSE
             rmse08unorm.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
             rmse08.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
+
+            # weighted RMSE
+            w_rmse.append(metrics.weighted_RMSE(x_new.cpu(), x_for_new.cpu(), latitude, longitude))
 
             print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
 

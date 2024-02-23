@@ -51,6 +51,78 @@ def psnr(im1, im2):
         psnr.append(calculate_psnr(im1[i, :, :, :], im2[i, :, :, :]))
     return psnr
 
+def compute_latitude_bounds(latitude, longitude, num_lat_bins, num_lon_bins):
+    """
+    Compute latitude bounds for each grid cell based on latitude and longitude coordinates.
+
+    Parameters:
+    - latitude: Numpy array of latitude coordinates for each pixel.
+    - longitude: Numpy array of longitude coordinates for each pixel.
+    - num_lat_bins: Number of latitude bins (grid cells). i.e. height
+    - num_lon_bins: Number of longitude bins (grid cells). i.e. width
+
+    Returns:
+    - latitude_bounds: List of tuples containing upper and lower latitude bounds for each grid cell.
+    """
+
+    lat_min = torch.min(latitude)
+    lat_max = torch.max(latitude)
+    lon_min = torch.min(longitude)
+    lon_max = torch.max(longitude)
+
+    lat_step = (lat_max - lat_min) / num_lat_bins
+    lon_step = (lon_max - lon_min) / num_lon_bins
+
+    latitude_bounds = []
+    for lat_bin in range(num_lat_bins):
+        lat_lower = lat_min + lat_bin * lat_step
+        lat_upper = lat_min + (lat_bin + 1) * lat_step
+
+        for lon_bin in range(num_lon_bins):
+            lon_lower = lon_min + lon_bin * lon_step
+            lon_upper = lon_min + (lon_bin + 1) * lon_step
+
+            latitude_bounds.append((lat_upper, lat_lower))
+
+    return latitude_bounds
+
+def compute_latitude_weights(latitude, longitude):
+    """
+    Compute latitude weights based on the provided latitude bounds.
+
+    Parameters:
+    - latitude_bounds: List or array of tuples containing upper and lower latitude bounds for each grid cell.
+
+    Returns:
+    - weights: Numpy array of latitude weights.
+    """
+    num_lat_bins = latitude.shape[1]
+    num_lon_bins = longitude.shape[1]
+    latitude_bounds = compute_latitude_bounds(latitude, longitude, num_lat_bins, num_lon_bins)
+
+    # init array to store latitude weights
+    weights = torch.zeros(len(latitude_bounds))
+
+    # compute sum of differences in sine of latitude bounds
+    sum_sin_diff = 0 
+    for i, item in enumerate(latitude_bounds):
+        sum_sin_diff += torch.sin(torch.deg2rad(item[0])) - torch.sin(torch.deg2rad(item[1]))
+    mean_sin_diff = (sum_sin_diff/len(latitude_bounds))
+
+    # compute latitude weights for each grid cell 
+    for i, item in enumerate(latitude_bounds):
+        weight = (torch.sin(torch.deg2rad(item[0]))-torch.sin(torch.deg2rad(item[1])))/mean_sin_diff  
+        weights[i] = weight
+    return weights
+
+def weighted_RMSE(yhat, y, latitude, longitude):
+    weights = compute_latitude_weights(latitude, longitude)
+    pdb.set_trace()
+    _,_,w,h = y.size()
+    sq_diff = (weights.view(w,h) * (yhat-y)**2)
+    mean = sq_diff.mean(dim=[1,2,3])
+    return torch.sqrt(mean)
+
 def RMSE(yhat,y):
     sq_diff = (yhat-y)**2
     mean = sq_diff.mean(dim=[1,2,3])

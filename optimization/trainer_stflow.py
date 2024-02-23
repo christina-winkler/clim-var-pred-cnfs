@@ -123,7 +123,7 @@ def trainer(args, train_loader, valid_loader, model,
 
                     # testing reconstruction - should be exact same as x_for
                     # pdb.set_trace()
-                    reconstructions, _ = model.forward(z=z.cuda(), x_past=x_past.cuda(), state=state,
+                    reconstructions, _, _ = model.forward(z=z.cuda(), x_past=x_past.cuda(), state=state,
                                       use_stored=True, reverse=True)
 
                     squared_recon_error = (reconstructions-x_for).mean()**2
@@ -170,7 +170,7 @@ def trainer(args, train_loader, valid_loader, model,
 
                      # predicting a new sample based on context window
                     print("Predicting ...")
-                    predictions, _ = model._predict(x_past.cuda(), state) # TODO: sample longer trajectories
+                    predictions, _, _ = model._predict(x_past.cuda(), state) # TODO: sample longer trajectories
                     grid_pred = torchvision.utils.make_grid(predictions[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
                     array_imgs_pred = np.array(grid_pred.permute(2,1,0)[:,:,0].unsqueeze(2))
                     cmap_pred = np.apply_along_axis(cm.inferno, 2, array_imgs_pred)
