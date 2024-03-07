@@ -4,7 +4,7 @@
 
 import torch
 import torch.nn as nn
-from custom_layers import *
+from models.architectures.custom_layers import *
 
 
 # =============================================================================
@@ -236,6 +236,7 @@ class FutureGenerator(nn.Module):
             # we make new network since pytorch does not support remove_module()
             new_model = nn.Sequential()
             new_model.add_module('concat_block_encode', Concat(prev_block_encode, next_block_encode))
+            pdb.set_trace()
             new_model.add_module('fadein_block_encode', FadeInLayer(self.config))
 
             low_resl_to_rgb = deepcopy_module(self.model, 'to_rgb_block')
