@@ -18,7 +18,7 @@ import os
 from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan
 
 # Optimization
-from optimization import trainer_stflow, trainer_stflow_ds, trainer_unet3d, trainer_convlstm, trainer_futgan
+from optimization import trainer_stflow, trainer_stflow_ds, trainer_unet3d, trainer_convlstm, trainer_futgan, trainer_spategan
 
 import pdb
 from tensorboardX import SummaryWriter
@@ -124,12 +124,12 @@ def main(args):
     elif args.modeltype == 'spategan':
         height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
 
-        generator = spate_gan.VideoDCG(args.bsz, times=10, x_h=height, x_w=width, filter_size=32,
-                                       state_size=32, bn=True, output_act='sigmoid', nchnnel=1).to(args.device)
+        generator = spate_gan.VideoDCG(args.bsz, time_steps=10, x_h=height, x_w=width, filter_size=32,
+                                       state_size=32, bn=True, output_act='sigmoid', nchannel=1).to(args.device)
         discriminator = spate_gan.VideoDCD(args.bsz, x_h=height, x_w=width, filter_size=32, j=16,
                                            nchannel=1, bn=True).to(args.device)
         print('Training SpateGAN ...')
-        
+
 
     elif args.modeltype == "unet3d":
         print('Training 3DUNet!')
@@ -169,8 +169,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # train configs
-    parser.add_argument("--modeltype", type=str, default="futgan",
-                        help="Specify modeltype you would like to train [flow, diff, unet3d, convLSTM].")
+    parser.add_argument("--modeltype", type=str, default="spategan",
+                        help="Specify modeltype you would like to train [flow, diff, unet3d, convLSTM, futgan, spategan].")
     parser.add_argument("--model_path", type=str, default="runs/",
                         help="Directory where models are saved.")
     parser.add_argument("--modelname", type=str, default=None,
