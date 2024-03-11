@@ -122,14 +122,21 @@ def main(args):
                                device=args.device)
 
     elif args.modeltype == 'spategan':
-        height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
+        args.height, args.width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
 
-        generator = spate_gan.VideoDCG(args.bsz, time_steps=10, x_h=height, x_w=width, filter_size=32,
+        generator = spate_gan.VideoDCG(args.bsz, time_steps=3, x_h=args.height, x_w=args.width, filter_size=32,
                                        state_size=32, bn=True, output_act='sigmoid', nchannel=1).to(args.device)
-        discriminator = spate_gan.VideoDCD(args.bsz, x_h=height, x_w=width, filter_size=32, j=16,
-                                           nchannel=1, bn=True).to(args.device)
-        print('Training SpateGAN ...')
+        discriminator_h = spate_gan.VideoDCD(args.bsz, x_h=args.height, x_w=args.width, filter_size=32, j=16,
+                                             nchannel=1, bn=True).to(args.device)
+        discriminator_m = spate_gan.VideoDCD(args.bsz, x_h=args.height, x_w=args.width, filter_size=32, j=16,
+                                             nchannel=1, bn=True).to(args.device)
 
+        print('Training SpateGAN ...')
+        trainer_spategan.trainer(args=args, train_loader=train_loader,
+                                 valid_loader=valid_loader, generator=generator,
+                                 discriminator_h=discriminator_h,
+                                 discriminator_m=discriminator_m,
+                                 device=args.device)
 
     elif args.modeltype == "unet3d":
         print('Training 3DUNet!')

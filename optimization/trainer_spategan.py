@@ -18,6 +18,8 @@ from torch.optim.lr_scheduler import StepLR
 from models.architectures.conv_lstm import *
 from optimization.validation_stflow import validate
 
+from optimization.spatial_utils import make_spates, make_sparse_weight_matrix, temporal_weights
+
 import wandb
 os.environ["WANDB_SILENT"] = "true"
 import sys
@@ -31,84 +33,8 @@ np.random.seed(0)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-class ScheduleResolution():
-    def __init__(self, args, len_dset, fadein):
-        self.config = args
-        self.resl = 2
-        self.trns_tick = 10
-        self.stab_tick = 10
-        self.batch_size = args.bsz
-        self.len_dset = len_dset
-        self.fadein = {'G':None, 'D':None} # TODO adapt
-        self.nsamples = 0
-
-    def schedule_resl(self):
-
-        # trns and stab if resl > 2
-        if floor(self.resl)!=2:
-            self.trns_tick = self.config.trns_tick
-            self.stab_tick = self.config.stab_tick
-
-        # alpha and delta parameters for smooth fade-in (resl-interpolation)
-        delta = 1.0/(self.trns_tick+self.stab_tick)
-        d_alpha = 1.0*self.batch_size/self.trns_tick/self.len_dset
-
-        # update alpha if FadeInLayer exist
-        if self.fadein['D'] is not None:
-            if self.resl%1.0 < (self.trns_tick)*delta:
-                import pdb; pdb.set_trace()
-                self.fadein['G'][0].update_alpha(d_alpha)
-                self.fadein['G'][1].update_alpha(d_alpha)
-                self.fadein['D'].update_alpha(d_alpha)
-                self.complete = self.fadein['D'].alpha*100
-                self.phase = 'trns'
-            elif self.resl%1.0 >= (self.trns_tick)*delta and self.phase != 'final':
-                self.phase = 'stab'
-
-        # increase resl linearly every tick
-        prev_nsamples = self.nsamples
-        self.nsamples = self.nsamples + self.batch_size
-        if (self.nsamples%self.len_dset) < (prev_nsamples%self.len_dset):
-            self.nsamples = 0
-
-            prev_resl = floor(self.resl)
-            self.resl = self.resl + delta
-            self.resl = max(2, min(10.5, self.resl))        # clamping, range: 4 ~ 1024
-
-            # flush network.
-            if self.flag_flush and self.resl%1.0 >= (self.trns_tick)*delta and prev_resl!=2:
-                if self.fadein['D'] is not None:
-                    self.fadein['G'][0].update_alpha(d_alpha)
-                    self.fadein['G'][1].update_alpha(d_alpha)
-                    self.fadein['D'].update_alpha(d_alpha)
-                    self.complete = self.fadein['D'].alpha*100
-                self.flag_flush = False
-                self.G.module.flush_network()   # flush G
-                self.D.module.flush_network()   # flush and,
-                self.fadein['G'] = None
-                self.fadein['D'] = None
-                self.complete = 0.0
-                if floor(self.resl) < self.max_resl and self.phase != 'final':
-                    self.phase = 'stab'
-                self.print_model_structure()
-
-            # grow network.
-            if floor(self.resl) != prev_resl and floor(self.resl)<self.max_resl+1:
-                self.lr = self.lr * float(self.config.lr_decay)
-                self.G.module.grow_network(floor(self.resl))
-                self.D.module.grow_network(floor(self.resl))
-                self.renew_everything()
-                self.fadein['G'] = [self.G.module.model.fadein_block_decode, self.G.module.model.fadein_block_encode]
-                self.fadein['D'] = self.D.module.model.fadein_block
-                self.flag_flush = True
-                self.print_model_structure()
-
-            if floor(self.resl) >= self.max_resl and self.resl%1.0 >= self.trns_tick*delta:
-                self.phase = 'final'
-                self.resl = self.max_resl+self.trns_tick*delta
-
-def trainer(args, train_loader, valid_loader, generator, discriminator,
-            device='cpu', needs_init=True, ckpt=None):
+def trainer(args, train_loader, valid_loader, generator, discriminator_h,
+            discriminator_m, device='cpu', needs_init=True, ckpt=None):
 
     config_dict = vars(args)
     # wandb.init(project="arflow", config=config_dict)
@@ -122,19 +48,18 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
     prev_nll_epoch = np.inf
     logging_step = 0
     step = 0
-    schedule_resl = ScheduleResolution(args, len(train_loader), {'G': generator, 'D': discriminator})
-
     criterion = torch.nn.BCELoss()
     optimizerG = optim.Adam(generator.parameters(), lr=args.lr, amsgrad=True)
-    optimizerD = optim.Adam(discriminator.parameters(), lr=args.lr, amsgrad=True)
+    optimizerD_h = optim.Adam(discriminator_h.parameters(), lr=args.lr, amsgrad=True)
+    optimizerD_m = optim.Adam(discriminator_m.parameters(), lr=args.lr, amsgrad=True)
 
     paramsG = sum(x.numel() for x in generator.parameters() if x.requires_grad)
-    paramsD = sum(x.numel() for x in discriminator.parameters() if x.requires_grad)
+    paramsD_h = sum(x.numel() for x in discriminator_h.parameters() if x.requires_grad)
 
     print("Gen:", paramsG)
-    print("Disc:", paramsD)
+    print("Disc h:", paramsD_h)
 
-    params = paramsG + paramsD
+    params = paramsG + 2*paramsD_h
     print('Nr of Trainable Params on {}:  '.format(device), params)
 
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
@@ -157,25 +82,36 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
         model = torch.nn.DataParallel(model)
         args.parallel = True
 
+    # Calculate spatio-temporal embedding
+    embedding_op = 'spate'
+    stx_method = 'skw' # Sequential Kulldorff-weighted spatio-temporal expectation
+    b = 20 #args.dec_weight
+    time_steps = 3
+    #b = torch.exp(-torch.arange(1, time_steps).flip(0).float() / b).view(1, 1, -1)
+    b = temporal_weights(time_steps,b).to(args.device)
+    if stx_method=="kw":
+      b = 1 / -torch.log(b[0,0,0]) * time_steps-1 # Get temporal weight b from computed weight tensor of length n
+      b = torch.exp(-torch.stack([torch.abs(torch.arange(0, time_steps) - t) for t in range(0,time_steps)]) / b)
+
+    w_sparse = make_sparse_weight_matrix(args.height, args.width).to(args.device)
     for epoch in range(args.epochs):
         for batch_idx, item in enumerate(train_loader):
 
             x = item[0].to(device)
 
             # split time series into lags and prediction window
-            x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
-
-            # schedule resolution
-            schedule_resl.schedule_resl()
+            # x_past, x_for = x[:,:, :2,...].to(args.device), x[:,:,2:,...].to(args.device)
+            # create real training data for discriminator
+            x_past = x[:, :, :2, :, :] #.reshape(args.bsz * 2, time_steps, 1, args.height, args.width).to(device)
+            x_for = x[:, :, 2: , :, :] #.reshape(args.bsz * 2, time_steps, 1, args.height, args.width).to(device)
 
             generator.train()
-            discriminator.train()
+            discriminator_h.train()
+            discriminator_m.train()
 
-            optimizerG.zero_grad()
-            optimizerD.zero_grad()
-
-            # interpolate discriminator real output
-            # TODO self.x.data = self.feed_interpolated_input(self.get_batch())
+            generator.zero_grad()
+            optimizerD_h.zero_grad()
+            optimizerD_m.zero_grad()
 
             # # We need to init the underlying module in the dataparallel object
             # For ActNorm layers.
@@ -185,8 +121,29 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             #                                 xlr=x[:bsz_p_gpu],
             #                                 logdet=0)
 
-            z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
-            writer.add_scalar("nll_train", nll.mean().item(), step)
+            # train generator
+            z_height, z_width = (5,5)
+            y_dim = 20
+
+            z = torch.randn(args.bsz, time_steps, z_height*z_width).to(args.device)
+            y = torch.randn(args.bsz, y_dim).to(args.device)
+            z_p = torch.randn(args.bsz, time_steps, z_height*z_width).to(args.device)
+            y_p = torch.randn(args.bsz, y_dim).to(args.device)
+            real_data = x_past[:args.bsz, ...]
+            real_data_p = x_past[args.bsz:,...]
+            real_data_emb = x_for[:args.bsz, ...]
+            real_data_p_emb = x_for[args.bsz:,...]
+            fake_data = generator(z, y)
+            fake_data_p = generator(z_p, y_p)
+
+            # create spate embedding
+            fake_data_emb = make_spates(fake_data, w_sparse, b, stx_method)
+            fake_data_p_emb = make_spates(fake_data_p, w_sparse, b, stx_method)
+
+            import pdb; pdb.set_trace()
+            # create real data embedding
+            concat_real = torch.cat((real_data_emb, real_emb), dim=2)
+            concat_fake = torch.cat((fake_data, fake_data_emb), dim=2)
 
             # Compute gradients
             nll.mean().backward()
