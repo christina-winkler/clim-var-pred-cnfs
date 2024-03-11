@@ -15,10 +15,10 @@ import time
 import os
 
 # Models
-from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan
+from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan, ddpm_conditional, conv_lstm_diff
 
 # Optimization
-from optimization import trainer_stflow, trainer_stflow_ds, trainer_unet3d, trainer_convlstm, trainer_futgan, trainer_spategan
+from optimization import trainer_stflow, trainer_stflow_ds, trainer_stdiff, trainer_stdiff_ds, trainer_unet3d, trainer_convlstm, trainer_futgan, trainer_spategan
 
 import pdb
 from tensorboardX import SummaryWriter
@@ -108,6 +108,54 @@ def main(args):
                                     model=model,
                                     device=args.device,
                                     ckpt=ckpt)
+    elif args.modeltype == "diff":
+
+        height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
+
+        ckpt= None
+        if args.resume:
+            print("Resume training of model ...")
+            modelname = 'model_epoch_0_step_7250_wbench.tar'
+            # modelpath = os.getcwd() + "/experiments/flow-3-level-3-k/models/{}".format(modelname)
+            modelpath = '/home/christina/Documents/spatio-temporal-conditioned-normalizing-flow/code/flow-3-level-3-k_model_epoch_0_step_7250_wbench/model/{}'.format(modelname)
+            ckpt = torch.load(modelpath)
+            model.load_state_dict(ckpt['model_state_dict'])
+
+        if args.ds or args.s > 1: # with simulation correction or upsampling in the end
+
+            sr_model = srflow.SRFlow((in_channels, height, width), args.filter_size, args.Lsr, args.Ksr,
+                                      args.bsz, args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
+
+            # diffusion process model
+            diffusion = ddpm_conditional.Diffusion(img_size=(height,width),device=args.device)
+
+            # Gated Conv LSTM for generating the latent representatios
+            convlstm = conv_lstm_diff.ConvLSTM(in_channels=args.lag_len, hidden_channels=32,
+                                          out_channels=1).to(args.device)
+
+            trainer_stdiff.trainer(args=args, train_loader=train_loader,
+                                   valid_loader=valid_loader,
+                                   diffusion=diffusion,
+                                   conv_lstm=convlstm,
+                                   device=args.device,
+                                   ckpt=ckpt)
+
+        else: # no upampling, simulation is run on input dimensionality without compression
+            print("No compression.")
+
+            # diffusion process model
+            diffusion = ddpm_conditional.Diffusion(img_size=(height,width), device=args.device)
+
+            # Gated Conv LSTM for generating the latent representatios
+            convlstm = conv_lstm_diff.ConvLSTM(in_channels=args.lag_len, hidden_channels=128,
+                                               out_channels=1).to(args.device)
+
+            trainer_stdiff.trainer(args=args, train_loader=train_loader,
+                                   valid_loader=valid_loader,
+                                   diffusion=diffusion,
+                                   model=convlstm,
+                                   device=args.device,
+                                   ckpt=ckpt)
 
     elif args.modeltype == 'futgan':
         height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
@@ -176,7 +224,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # train configs
-    parser.add_argument("--modeltype", type=str, default="spategan",
+    parser.add_argument("--modeltype", type=str, default="diff",
                         help="Specify modeltype you would like to train [flow, diff, unet3d, convLSTM, futgan, spategan].")
     parser.add_argument("--model_path", type=str, default="runs/",
                         help="Directory where models are saved.")

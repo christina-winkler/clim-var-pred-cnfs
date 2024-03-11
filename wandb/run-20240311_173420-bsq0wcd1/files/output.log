@@ -1,0 +1,81 @@
+
+Nr of Trainable Params on cuda:   99009
+  0%|                                                                                                                         | 0/18627 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 88, in trainer
+    out = model.forward(x=x_past)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm.py", line 70, in forward
+    h,c = self.convLSTMcell(x[:,:,time_step],(h,c))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm.py", line 107, in forward
+    out = self.gated_conv_net(X).cuda()
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm.py", line 169, in forward
+    out = self.nn(x.cuda()).cuda()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/container.py", line 217, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 613, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 608, in _conv_forward
+    return F.conv3d(
+           ^^^^^^^^^
+RuntimeError: Given groups=1, weight of size [32, 2, 3, 3, 3], expected input[1, 16, 2, 32, 64] to have 2 channels, but got 16 channels instead
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 88, in trainer
+    out = model.forward(x=x_past)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm.py", line 70, in forward
+    h,c = self.convLSTMcell(x[:,:,time_step],(h,c))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm.py", line 107, in forward
+    out = self.gated_conv_net(X).cuda()
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm.py", line 169, in forward
+    out = self.nn(x.cuda()).cuda()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/container.py", line 217, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 613, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 608, in _conv_forward
+    return F.conv3d(
+           ^^^^^^^^^
+RuntimeError: Given groups=1, weight of size [32, 2, 3, 3, 3], expected input[1, 16, 2, 32, 64] to have 2 channels, but got 16 channels instead

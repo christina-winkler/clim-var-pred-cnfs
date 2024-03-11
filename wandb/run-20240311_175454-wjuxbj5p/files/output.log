@@ -1,0 +1,63 @@
+Nr of Trainable Params on cuda:   92865
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(168)forward()
+-> val, gate = torch.chunk(out, 2, dim=1)
+  0%|                                                                                                                         | 0/18627 [00:00<?, ?it/s]
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(169)forward()
+-> return x + val * torch.sigmoid(gate)
+RuntimeError: The size of tensor a (32) must match the size of tensor b (64) at non-singleton dimension 0
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(169)forward()
+  0%|                                                                                                                         | 0/18627 [00:20<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 88, in trainer
+    out = model.forward(x=x_past)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 70, in forward
+    h,c = self.convLSTMcell(x[:,:,time_step],(h,c))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 107, in forward
+    out = self.gated_conv_net(X).cuda()
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 96, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 176, in dispatch_exception
+    if self.quitting: raise BdbQuit
+                      ^^^^^^^^^^^^^
+bdb.BdbQuit
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 88, in trainer
+    out = model.forward(x=x_past)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 70, in forward
+    h,c = self.convLSTMcell(x[:,:,time_step],(h,c))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 107, in forward
+    out = self.gated_conv_net(X).cuda()
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 96, in trace_dispatch
+    return self.dispatch_exception(frame, arg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 176, in dispatch_exception
+    if self.quitting: raise BdbQuit
+                      ^^^^^^^^^^^^^
+bdb.BdbQuit

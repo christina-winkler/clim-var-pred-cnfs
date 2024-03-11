@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import torch.optim as optim
 import os
-import json 
+import json
 
 # utils
 from utils import utils
@@ -33,12 +33,12 @@ np.random.seed(0)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-def trainer(args, train_loader, valid_loader, srmodel, stmodel,
+def trainer(args, train_loader, valid_loader, srmodel, diffusion, conv_lstm,
             device='cpu', needs_init=True, ckpt=None):
 
     config_dict = vars(args)
-    # wandb.init(project="arflow", config=config_dict)
-    print("With DOWNSCALING")
+    wandb.init(project="stdiff", config=config_dict)
+
     args.experiment_dir = os.path.join('runs',
                                         args.modeltype + '_' + args.trainset + '_{}x'.format(args.s) + datetime.now().strftime("_%Y_%m_%d_%H_%M_%S"))
     # set viz dir
@@ -52,7 +52,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
     bpd_valid = 0
 
     sr_optimizer = optim.Adam(srmodel.parameters(), lr=args.lr, amsgrad=True)
-    st_optimizer = optim.Adam(stmodel.parameters(), lr=args.lr, amsgrad=True)    
+    st_optimizer = optim.Adam(stmodel.parameters(), lr=args.lr, amsgrad=True)
 
     sr_scheduler = torch.optim.lr_scheduler.StepLR(sr_optimizer,
                                                    step_size=2 * 10 ** 5,
@@ -74,9 +74,9 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
     print('Nr of Trainable Params on {}:  '.format(device), params)
 
     # write training configs to file
-    hparams = {'lr': args.lr, 'bsize':args.bsz, 'Flow Steps SR':args.Ksr, 'Levels SR':args.Lsr, 
+    hparams = {'lr': args.lr, 'bsize':args.bsz, 'Flow Steps SR':args.Ksr, 'Levels SR':args.Lsr,
                 'Flow Steps ST': args.Kst, 'Levels ST':args.Lst,'s':args.s, 'ds': args.ds}
-    
+
     with open(args.experiment_dir + '/configs.txt','w') as file:
         file.write(json.dumps(hparams))
     if torch.cuda.device_count() > 1 and args.train:
@@ -188,7 +188,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     # plt.axis('off')
                     # plt.title("Context Frame at t-1 (train)")
                     # plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
-                    
+
                     # # visualize future frame of the correct prediction
                     # grid_future = torchvision.utils.make_grid(x_for_lr[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
                     # array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))
@@ -249,7 +249,7 @@ def trainer(args, train_loader, valid_loader, srmodel, stmodel,
                     torch.save({'epoch': epoch,
                                 'model_state_dict': stmodel.state_dict(),
                                 'optimizer_state_dict': st_optimizer.state_dict(),
-                                'loss': nll_valid.mean()}, STPATH+ f"model_epoch_{epoch}_step_{step}.tar")    
+                                'loss': nll_valid.mean()}, STPATH+ f"model_epoch_{epoch}_step_{step}.tar")
 
                     prev_nll_epoch = nll_valid
 

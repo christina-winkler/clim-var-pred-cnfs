@@ -1,0 +1,276 @@
+wandb_version: 1
+
+modeltype:
+  desc: null
+  value: diff
+model_path:
+  desc: null
+  value: runs/
+modelname:
+  desc: null
+  value: diff_geop_bsz16_K2_L3_lr0.0002_s1
+epochs:
+  desc: null
+  value: 10000
+max_steps:
+  desc: null
+  value: 2000000
+log_interval:
+  desc: null
+  value: 100
+val_interval:
+  desc: null
+  value: 250
+visual:
+  desc: null
+  value: false
+noscaletest:
+  desc: null
+  value: false
+noscale:
+  desc: null
+  value: false
+testmode:
+  desc: null
+  value: false
+train:
+  desc: null
+  value: true
+resume:
+  desc: null
+  value: false
+ds:
+  desc: null
+  value: false
+nbits:
+  desc: null
+  value: 8
+s:
+  desc: null
+  value: 1
+crop_size:
+  desc: null
+  value: 500
+patch_size:
+  desc: null
+  value: 500
+bsz:
+  desc: null
+  value: 16
+seq_len:
+  desc: null
+  value: 2
+lag_len:
+  desc: null
+  value: 2
+lead_len:
+  desc: null
+  value: 1
+lr:
+  desc: null
+  value: 0.0002
+filter_size:
+  desc: null
+  value: 256
+Lst:
+  desc: null
+  value: 3
+Kst:
+  desc: null
+  value: 2
+Lsr:
+  desc: null
+  value: 3
+Ksr:
+  desc: null
+  value: 2
+nb:
+  desc: null
+  value: 16
+condch:
+  desc: null
+  value: 16
+datadir:
+  desc: null
+  value: /home/christina/Documents/climsim_ds/data
+trainset:
+  desc: null
+  value: geop
+dgx:
+  desc: null
+  value: false
+ngpu:
+  desc: null
+  value: 1
+random_seed:
+  desc: null
+  value: 1710173459
+ext:
+  desc: null
+  value:
+  - .jpg
+  - .jpeg
+  - .png
+  - .ppm
+  - .bmp
+  - .pgm
+use_ckpt:
+  desc: null
+  value: false
+ckpt_path:
+  desc: null
+  value: null
+data_root:
+  desc: null
+  value: ''
+log_dir:
+  desc: null
+  value: ./logs
+experiment_name:
+  desc: null
+  value: ''
+d_cond:
+  desc: null
+  value: true
+nc:
+  desc: null
+  value: 3
+max_resl:
+  desc: null
+  value: 128
+nframes_in:
+  desc: null
+  value: 6
+nframes_pred:
+  desc: null
+  value: 6
+batch_size_table:
+  desc: null
+  value:
+    '4': 32
+    '8': 16
+    '16': 8
+    '32': 4
+    '64': 2
+    '128': 1
+    '256': 1
+    '512': 1
+    '1024': 1
+trns_tick:
+  desc: null
+  value: 10
+stab_tick:
+  desc: null
+  value: 10
+nz:
+  desc: null
+  value: 512
+ngf:
+  desc: null
+  value: 512
+ndf:
+  desc: null
+  value: 512
+loss:
+  desc: null
+  value: wgan_gp
+d_eps_penalty:
+  desc: null
+  value: true
+acgan:
+  desc: null
+  value: false
+optimizer:
+  desc: null
+  value: adam
+beta1:
+  desc: null
+  value: 0.0
+beta2:
+  desc: null
+  value: 0.99
+lr_decay:
+  desc: null
+  value: 0.87
+lrelu:
+  desc: null
+  value: true
+padding:
+  desc: null
+  value: zero
+w_norm:
+  desc: null
+  value: true
+batch_norm:
+  desc: null
+  value: false
+g_pixelwise_norm:
+  desc: null
+  value: true
+d_gdrop:
+  desc: null
+  value: false
+g_tanh:
+  desc: null
+  value: false
+d_sigmoid:
+  desc: null
+  value: false
+x_add_noise:
+  desc: null
+  value: false
+z_pixelwise_norm:
+  desc: null
+  value: false
+tb_logging:
+  desc: null
+  value: false
+update_tb_every:
+  desc: null
+  value: 100
+save_img_every:
+  desc: null
+  value: 100
+save_ckpt_every:
+  desc: null
+  value: 5
+device:
+  desc: null
+  value: cuda
+num_gpus:
+  desc: null
+  value: 1
+parallel:
+  desc: null
+  value: false
+_wandb:
+  desc: null
+  value:
+    python_version: 3.11.4
+    cli_version: 0.15.4
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1710173468.140949
+    t:
+      1:
+      - 1
+      - 5
+      - 41
+      - 53
+      - 54
+      - 55
+      2:
+      - 1
+      - 5
+      - 41
+      - 53
+      - 54
+      - 55
+      3:
+      - 16
+      - 23
+      4: 3.11.4
+      5: 0.15.4
+      8:
+      - 5

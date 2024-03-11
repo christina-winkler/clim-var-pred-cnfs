@@ -1,0 +1,20 @@
+
+Nr of Trainable Params on cuda:   104196
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 82, in trainer
+    model.train()
+    ^^^^^
+UnboundLocalError: cannot access local variable 'model' where it is not associated with a value
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 82, in trainer
+    model.train()
+    ^^^^^
+UnboundLocalError: cannot access local variable 'model' where it is not associated with a value

@@ -1,0 +1,4 @@
+Nr of Trainable Params on cuda:   1390977
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(158)forward()
+-> return out.permute(1,0,2,3)
+  0%|                                                                                                                         | 0/18627 [00:00<?, ?it/s]
