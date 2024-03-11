@@ -19,6 +19,7 @@ from models.architectures.conv_lstm import *
 from optimization.validation_stflow import validate
 
 from optimization.spatial_utils import make_spates, make_sparse_weight_matrix, temporal_weights
+from optimization.gan_utils import original_sinkhorn_loss
 
 import wandb
 os.environ["WANDB_SILENT"] = "true"
@@ -140,10 +141,12 @@ def trainer(args, train_loader, valid_loader, generator, discriminator_h,
             fake_data_emb = make_spates(fake_data, w_sparse, b, stx_method)
             fake_data_p_emb = make_spates(fake_data_p, w_sparse, b, stx_method)
 
-            import pdb; pdb.set_trace()
             # create real data embedding
-            concat_real = torch.cat((real_data_emb, real_emb), dim=2)
+            concat_real = torch.cat((real_data, real_data_emb), dim=2)
             concat_fake = torch.cat((fake_data, fake_data_emb), dim=2)
+            import pdb; pdb.set_trace()
+            loss_d = original_sinkhorn_loss(real_data, fake_data, 0.8, 100, scale=20)
+
 
             # Compute gradients
             nll.mean().backward()
