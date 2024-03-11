@@ -84,13 +84,17 @@ def trainer(args, train_loader, valid_loader, diffusion, model,
 
             model.train()
             optimizer.zero_grad()
-            # import pdb; pdb.set_trace()
+
             out = model.forward(x=x_past)
 
-            writer.add_scalar("nll_train", nll.mean().item(), step)
+            t = diffusion.sample_timesteps(x.shape[0]).to(args.device)
+            x_t, noise = diffusion.noise_images(x_for, t)
 
+            predicted_noise = model(x_t) # , t, labels)
+
+            import pdb; pdb.set_trace()
             # Compute gradients
-            # loss = mse() TODO
+            loss = mse(predicted_noise, noise)
             nll.mean().backward()
 
             # Update model parameters using calculated gradients

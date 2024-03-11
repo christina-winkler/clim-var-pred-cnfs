@@ -85,7 +85,7 @@ class ConvLSTMCell(nn.Module):
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
         self.gated_conv_net = GatedConvNet(in_channels, hidden_channels,
-                                           out_channels, num_layers)
+                                           4, num_layers)
         self.init_parameters()
 
     def init_parameters(self):
@@ -153,7 +153,7 @@ class GatedConvNet(nn.Module):
         out = self.nn[5](out)
         out = self.nn[6](out)
         out = self.nn[7](out.permute(1,0,2,3))
-        out = self.nn[8](out.permute(1,0,2,3))
+        out = self.nn[8](out.permute(1,0,2,3)).permute(1,0,2,3)
         return out
 
 class GatedConv(nn.Module):
