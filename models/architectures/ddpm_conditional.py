@@ -42,7 +42,7 @@ class Diffusion:
         logging.info(f"Sampling {n} new images....")
         model.eval()
         with torch.no_grad():
-            x = torch.randn((n, 1, self.img_size[0], self.img_size[1])).to(self.device)
+            x = torch.randn((n, 2, self.img_size[0], self.img_size[1])).to(self.device)
             for i in tqdm(reversed(range(1, self.noise_steps)), position=0):
                 t = (torch.ones(n) * i).long().to(self.device)
                 predicted_noise = model(x, t, targets)

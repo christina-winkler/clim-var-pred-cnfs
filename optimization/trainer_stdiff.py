@@ -150,28 +150,27 @@ def trainer(args, train_loader, valid_loader, diffusion, model,
 
                     model.eval()
 
-                    sampled_images = diffusion.sample(model, n=10, targets=x_for)
-                    ema_sampled_images = diffusion.sample(ema_model, n=10, targets=x_for)
+                    sampled_images = diffusion.sample(model, n=args.bsz, targets=x_for)
+                    ema_sampled_images = diffusion.sample(ema_model, n=args.bsz, targets=x_for)
 
                     # testing reconstruction - should be exact same as x_for
                     # pdb.set_trace()
-                    reconstructions, _, _ = model.forward(z=z.cuda(), x_past=x_past.cuda(), state=state,
-                                      use_stored=True, reverse=True)
-
-                    squared_recon_error = (reconstructions-x_for).mean()**2
-                    print("Reconstruction Error:", (reconstructions-x_for).mean())
+                    # reconstructions, _, _ = model.forward(z=z.cuda(), x_past=x_past.cuda(), state=state,
+                    #                   use_stored=True, reverse=True)
+                    #
+                    # squared_recon_error = (reconstructions-x_for).mean()**2
+                    # print("Reconstruction Error:", (reconstructions-x_for).mean())
                     # wandb.log({"Squared Reconstruction Error" : squared_recon_error})
 
-                    grid_reconstructions = torchvision.utils.make_grid(reconstructions[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
-                    array_imgs_np = np.array(grid_reconstructions.permute(2,1,0)[:,:,0].contiguous().unsqueeze(2))
-                    cmap_recon = np.apply_along_axis(cm.inferno, 2, array_imgs_np)
-                    reconstructions = wandb.Image(cmap_recon, caption="Training Reconstruction")
+                    # grid_reconstructions = torchvision.utils.make_grid(reconstructions[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
+                    # array_imgs_np = np.array(grid_reconstructions.permute(2,1,0)[:,:,0].contiguous().unsqueeze(2))
+                    # cmap_recon = np.apply_along_axis(cm.inferno, 2, array_imgs_np)
+                    # reconstructions = wandb.Image(cmap_recon, caption="Training Reconstruction")
                     # wandb.log({"Reconstructions (train) {}".format(step) : reconstructions})
-
-                    plt.figure()
-                    plt.imshow(grid_reconstructions.permute(1, 2, 0)[:,:,0].contiguous(),cmap=color)
-                    plt.axis('off')
-                    plt.savefig(viz_dir + '/reconstructed_frame_t_{}.png'.format(step), dpi=300)
+                    # plt.figure()
+                    # plt.imshow(grid_reconstructions.permute(1, 2, 0)[:,:,0].contiguous(),cmap=color)
+                    # plt.axis('off')
+                    # plt.savefig(viz_dir + '/reconstructed_frame_t_{}.png'.format(step), dpi=300)
                     # plt.show()
 
                     # visualize past frames the prediction is based on (context)
@@ -202,15 +201,15 @@ def trainer(args, train_loader, valid_loader, diffusion, model,
 
                      # predicting a new sample based on context window
                     print("Predicting ...")
-                    predictions, _, _ = model._predict(x_past.cuda(), state) # TODO: sample longer trajectories
-                    grid_pred = torchvision.utils.make_grid(predictions[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
+                    # predictions, _, _ = model._predict(x_past.cuda(), state) # TODO: sample longer trajectories
+                    grid_pred = torchvision.utils.make_grid(sampled_images[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
                     array_imgs_pred = np.array(grid_pred.permute(2,1,0)[:,:,0].unsqueeze(2))
                     cmap_pred = np.apply_along_axis(cm.inferno, 2, array_imgs_pred)
                     future_pred = wandb.Image(cmap_pred, caption="Frame at t")
                     # wandb.log({"Predicted frame at t (train) {}".format(step) : future_pred})
 
                     # visualize predictions
-                    grid_samples = torchvision.utils.make_grid(predictions[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
+                    grid_samples = torchvision.utils.make_grid(sampled_images[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
                     plt.figure()
                     plt.imshow(grid_samples.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
                     plt.axis('off')
