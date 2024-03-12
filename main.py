@@ -15,7 +15,7 @@ import time
 import os
 
 # Models
-from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan, ddpm_conditional, conv_lstm_diff
+from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan, ddpm_conditional, conv_lstm_diff, diff_modules
 
 # Optimization
 from optimization import trainer_stflow, trainer_stflow_ds, trainer_stdiff, trainer_stdiff_ds, trainer_unet3d, trainer_convlstm, trainer_futgan, trainer_spategan
@@ -49,7 +49,7 @@ def main(args):
         args.device = "cpu"
 
     print("Device", args.device)
-    # args.device = "cpu"
+    args.device = "cpu"
 
     # Build name of current model
     if args.modelname is None:
@@ -130,13 +130,15 @@ def main(args):
             diffusion = ddpm_conditional.Diffusion(img_size=(height,width),device=args.device)
 
             # Gated Conv LSTM for generating the latent representatios
-            convlstm = conv_lstm_diff.ConvLSTM(in_channels=args.lag_len, hidden_channels=32,
-                                          out_channels=1).to(args.device)
+            # convlstm = conv_lstm_diff.ConvLSTM(in_channels=args.lag_len, hidden_channels=32,
+            #                               out_channels=1).to(args.device)
+            unet = diff_modules.UNet_conditional(c_in=1, c_out=1, time_dim=256,
+                                                 num_classes=None, device=args.device)
 
             trainer_stdiff.trainer(args=args, train_loader=train_loader,
                                    valid_loader=valid_loader,
                                    diffusion=diffusion,
-                                   conv_lstm=convlstm,
+                                   model=unet,
                                    device=args.device,
                                    ckpt=ckpt)
 
@@ -146,16 +148,17 @@ def main(args):
             # diffusion process model
             diffusion = ddpm_conditional.Diffusion(img_size=(height,width), device=args.device)
 
-            # Gated Conv LSTM for generating the latent representatios
-            convlstm = conv_lstm_diff.ConvLSTM(in_channels=args.lag_len, hidden_channels=128,
-                                               out_channels=1).to(args.device)
+            # Conditional 3DUNet
+            unet = diff_modules.UNet_conditional(c_in=2, c_out=1, time_dim=256,
+                                                 num_classes=height*width, device=args.device).to(args.device)
 
             trainer_stdiff.trainer(args=args, train_loader=train_loader,
                                    valid_loader=valid_loader,
                                    diffusion=diffusion,
-                                   model=convlstm,
+                                   model=unet,
                                    device=args.device,
                                    ckpt=ckpt)
+
 
     elif args.modeltype == 'futgan':
         height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]

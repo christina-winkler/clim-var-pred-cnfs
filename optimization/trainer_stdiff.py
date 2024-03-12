@@ -11,6 +11,7 @@ from utils import utils
 import numpy as np
 import random
 import pdb
+import copy
 from tqdm import tqdm
 import torchvision
 from tensorboardX import SummaryWriter
@@ -31,11 +32,38 @@ np.random.seed(0)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
+class EMA:
+    def __init__(self, beta):
+        super().__init__()
+        self.beta = beta
+        self.step = 0
+
+    def update_model_average(self, ma_model, current_model):
+        for current_params, ma_params in zip(current_model.parameters(), ma_model.parameters()):
+            old_weight, up_weight = ma_params.data, current_params.data
+            ma_params.data = self.update_average(old_weight, up_weight)
+
+    def update_average(self, old, new):
+        if old is None:
+            return new
+        return old * self.beta + (1 - self.beta) * new
+
+    def step_ema(self, ema_model, model, step_start_ema=2000):
+        if self.step < step_start_ema:
+            self.reset_parameters(ema_model, model)
+            self.step += 1
+            return
+        self.update_model_average(ema_model, model)
+        self.step += 1
+
+    def reset_parameters(self, ema_model, model):
+        ema_model.load_state_dict(model.state_dict())
+
 def trainer(args, train_loader, valid_loader, diffusion, model,
             device='cpu', needs_init=True, ckpt=None):
 
     config_dict = vars(args)
-    wandb.init(project="stdiff", config=config_dict)
+    # wandb.init(project="stdiff", config=config_dict)
     args.experiment_dir = os.path.join('runs',
                                         args.modeltype + '_' + args.trainset + '_no_ds_'  + datetime.now().strftime("_%Y_%m_%d_%H_%M_%S"))
     # set viz dir
@@ -47,7 +75,9 @@ def trainer(args, train_loader, valid_loader, diffusion, model,
     logging_step = 0
     step = 0
     bpd_valid = 0
-    criterion = nn.MSELoss()
+    mse = nn.MSELoss()
+    ema = EMA(0.995)
+    ema_model = copy.deepcopy(model).eval().requires_grad_(False)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, amsgrad=True)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=2 * 10 ** 5,
@@ -60,7 +90,7 @@ def trainer(args, train_loader, valid_loader, diffusion, model,
     color = 'inferno' if args.trainset == 'era5' else 'viridis'
 
     params = sum(x.numel() for x in model.parameters() if x.requires_grad)
-    print('Nr of Trainable Params on {}:  '.format(device), params)
+    print('Nr of Trainable Params on {}:  '.format(args.device), params)
 
     # write training configs to file
     hparams = {'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.Ksr, 'Levels':args.Lsr, 's':args.s, 'ds': args.ds}
@@ -73,11 +103,12 @@ def trainer(args, train_loader, valid_loader, diffusion, model,
         model = torch.nn.DataParallel(model)
         args.parallel = True
 
+
     for epoch in range(args.epochs):
         pbar = tqdm(train_loader)
         for batch_idx, item in enumerate(pbar):
 
-            x = item[0].to(device)
+            x = item[0].to(args.device)
 
             # split time series into lags and prediction window
             x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
@@ -85,29 +116,28 @@ def trainer(args, train_loader, valid_loader, diffusion, model,
             model.train()
             optimizer.zero_grad()
 
-            out = model.forward(x=x_past)
-
             t = diffusion.sample_timesteps(x.shape[0]).to(args.device)
-            x_t, noise = diffusion.noise_images(x_for, t)
+            x_past_noisy, noise = diffusion.noise_images(x_past, t)
 
-            predicted_noise = model(x_t) # , t, labels)
+            predicted_noise = model(x_past_noisy.squeeze(1), t, x_for)
 
-            import pdb; pdb.set_trace()
-            # Compute gradients
+            # compute gradients
             loss = mse(predicted_noise, noise)
-            nll.mean().backward()
+            loss.backward()
 
             # Update model parameters using calculated gradients
             optimizer.step()
             scheduler.step()
+            ema.step_ema(ema_model, model)
+            pbar.set_postfix(MSE=loss.item())
             step = step + 1
 
-            print("[{}] Epoch: {}, Train Step: {:01d}/{}, Bsz = {}, NLL {:.3f}".format(
+            print("[{}] Epoch: {}, Train Step: {:01d}/{}, Bsz = {}, MSE {:.3f}".format(
                     datetime.now().strftime("%Y-%m-%d %H:%M"),
                     epoch, step,
                     args.max_steps,
                     args.bsz,
-                    nll.mean()))
+                    loss.item()))
 
             if step % args.log_interval == 0:
 
@@ -119,6 +149,9 @@ def trainer(args, train_loader, valid_loader, diffusion, model,
                         model_without_dataparallel = model
 
                     model.eval()
+
+                    sampled_images = diffusion.sample(model, n=10, targets=x_for)
+                    ema_sampled_images = diffusion.sample(ema_model, n=10, targets=x_for)
 
                     # testing reconstruction - should be exact same as x_for
                     # pdb.set_trace()

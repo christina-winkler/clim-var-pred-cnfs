@@ -211,8 +211,8 @@ class UNet_conditional(nn.Module):
         self.sa6 = SelfAttention(64, 64)
         self.outc = nn.Conv2d(64, c_out, kernel_size=1)
 
-        if num_classes is not None:
-            self.label_emb = nn.Embedding(num_classes, time_dim)
+        # if num_classes is not None:
+        self.label_emb = nn.Embedding(num_classes, time_dim)
 
     def pos_encoding(self, t, channels):
         inv_freq = 1.0 / (
@@ -229,8 +229,12 @@ class UNet_conditional(nn.Module):
         t = self.pos_encoding(t, self.time_dim)
 
         if y is not None:
-            t += self.label_emb(y)
+            bsz = y.shape[0]
+            import pdb; pdb.set_trace()
+            l_emb = self.label_emb(y.view(bsz,-1,1).long()).float()
+            t = t.unsqueeze(2) + l_emb.squeeze(2).permute(0,2,1)
 
+        # import pdb; pdb.set_trace()
         x1 = self.inc(x)
         x2 = self.down1(x1, t)
         x2 = self.sa1(x2)
