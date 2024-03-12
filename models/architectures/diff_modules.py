@@ -33,10 +33,11 @@ class EMA:
 
 
 class SelfAttention(nn.Module):
-    def __init__(self, channels, size):
+    def __init__(self, channels, height, width):
         super(SelfAttention, self).__init__()
         self.channels = channels
-        self.size = size
+        self.height = height
+        self.width = width
         self.mha = nn.MultiheadAttention(channels, 4, batch_first=True)
         self.ln = nn.LayerNorm([channels])
         self.ff_self = nn.Sequential(
@@ -47,12 +48,13 @@ class SelfAttention(nn.Module):
         )
 
     def forward(self, x):
-        x = x.view(-1, self.channels, self.size * self.size).swapaxes(1, 2)
+        bsz = x.shape[0]
+        x = x.view(bsz, self.channels, self.height * self.width).swapaxes(1, 2)
         x_ln = self.ln(x)
         attention_value, _ = self.mha(x_ln, x_ln, x_ln)
         attention_value = attention_value + x
         attention_value = self.ff_self(attention_value) + attention_value
-        return attention_value.swapaxes(2, 1).view(-1, self.channels, self.size, self.size)
+        return attention_value.swapaxes(2, 1).view(-1, self.channels, self.height, self.width)
 
 
 class DoubleConv(nn.Module):
@@ -132,7 +134,7 @@ class UNet(nn.Module):
         self.time_dim = time_dim
         self.inc = DoubleConv(c_in, 64)
         self.down1 = Down(64, 128)
-        self.sa1 = SelfAttention(128, 32)
+        self.sa1 = SelfAttention(128, height=16, width=32)
         self.down2 = Down(128, 256)
         self.sa2 = SelfAttention(256, 16)
         self.down3 = Down(256, 256)
@@ -193,26 +195,27 @@ class UNet_conditional(nn.Module):
         self.time_dim = time_dim
         self.inc = DoubleConv(c_in, 64)
         self.down1 = Down(64, 128)
-        self.sa1 = SelfAttention(128, 32)
+        self.sa1 = SelfAttention(128, height=16, width=32) # TODO this depends on height and width of input image
         self.down2 = Down(128, 256)
-        self.sa2 = SelfAttention(256, 16)
+        self.sa2 = SelfAttention(256, height=8, width=16)
         self.down3 = Down(256, 256)
-        self.sa3 = SelfAttention(256, 8)
+        self.sa3 = SelfAttention(256, height=4, width=8)
 
         self.bot1 = DoubleConv(256, 512)
         self.bot2 = DoubleConv(512, 512)
         self.bot3 = DoubleConv(512, 256)
 
         self.up1 = Up(512, 128)
-        self.sa4 = SelfAttention(128, 16)
+        self.sa4 = SelfAttention(128, height=8, width=16)
         self.up2 = Up(256, 64)
-        self.sa5 = SelfAttention(64, 32)
+        self.sa5 = SelfAttention(64, height=16, width=32)
         self.up3 = Up(128, 64)
-        self.sa6 = SelfAttention(64, 64)
+        self.sa6 = SelfAttention(64, height=32, width=64)
         self.outc = nn.Conv2d(64, c_out, kernel_size=1)
 
         # if num_classes is not None:
-        self.label_emb = nn.Embedding(num_classes, time_dim)
+        # self.label_emb = nn.Embedding(num_classes, time_dim)
+        self.y_repr = nn.Linear(num_classes, time_dim)
 
     def pos_encoding(self, t, channels):
         inv_freq = 1.0 / (
@@ -228,13 +231,12 @@ class UNet_conditional(nn.Module):
         t = t.unsqueeze(-1).type(torch.float)
         t = self.pos_encoding(t, self.time_dim)
 
-        if y is not None:
+        if y is not None: # y is the conditioning info, in our case it is the future frame
             bsz = y.shape[0]
-            import pdb; pdb.set_trace()
-            l_emb = self.label_emb(y.view(bsz,-1,1).long()).float()
-            t = t.unsqueeze(2) + l_emb.squeeze(2).permute(0,2,1)
+            # l_emb = self.label_emb(y.view(bsz,-1,1).long()).float()
+            y_rep = self.y_repr(y.view(bsz,-1))
+            t += y_rep
 
-        # import pdb; pdb.set_trace()
         x1 = self.inc(x)
         x2 = self.down1(x1, t)
         x2 = self.sa1(x2)
