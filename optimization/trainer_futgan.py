@@ -199,12 +199,20 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             optimizerG.zero_grad()
             optimizerD.zero_grad()
 
+            # # wrapping autograd Variable.
+            # self.z = Variable(torch.FloatTensor(self.batch_size, self.nc, self.nframes_in, self.img_size, self.img_size))
+            # self.x = Variable(torch.FloatTensor(self.batch_size, self.nc, self.nframes, self.img_size, self.img_size))
+            # self.x_gen = Variable(torch.FloatTensor(self.batch_size, self.nc, self.nframes_pred, self.img_size, self.img_size))
+            # self.z_x_gen = Variable(torch.FloatTensor(self.batch_size, self.nc, self.nframes, self.img_size, self.img_size))
+            #
+
             # interpolate discriminator real output
             data = feed_interpolated_input(x,resl=schedule_resl.resl,max_resl=schedule_resl.max_resl).to(args.device) # whole sequence
             x_past, x_for = data[:,:, :2,...], data[:,:, 2:,...]
 
             # generate future sequence
-            gen_x_for = generator(x_past) # takes in sequence of past frames to predict sequence of future frames
+            noise = torch.randn_like(x_past)
+            gen_x_for = generator(x_past, noise) # takes in sequence of past frames to predict sequence of future frames
 
             # distinguish between real and fake sequences
             # compute score - float

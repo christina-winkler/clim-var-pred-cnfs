@@ -116,6 +116,7 @@ class FutureGenerator(nn.Module):
         self.layer_name_decode = None
         self.module_names = []
         self.model = self.get_init_gen()
+        self.change_channel = nn.Conv3d(3, 1, 1, 1, 0, bias=False)
 
 
     def middle_block(self):
@@ -302,15 +303,19 @@ class FutureGenerator(nn.Module):
             param.requires_grad = False
 
 
-    def forward(self, x):
+    def forward(self, x, noise):
 
+        # concat noise and input
+        out = torch.cat((x,noise), 2)
         # if self.config.d_cond==True:
         #     import pdb; pdb.set_trace()
         #     y = self.model(x)
         #     x = torch.cat([x, y],2)
         # else:
         #     x = self.model(x)
-        return self.model(x)
+        out = self.model(out)
+        out = self.change_channel(out.permute(0,2,1,3,4)).permute(0,2,1,3,4)
+        return out
 
 
 
