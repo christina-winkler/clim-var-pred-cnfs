@@ -304,13 +304,13 @@ class FutureGenerator(nn.Module):
 
     def forward(self, x):
 
-        if self.config.d_cond==True:
-            y = self.model(x)
-            x = torch.cat([x, y],2)
-        else:
-            x = self.model(x)
-
-        return x
+        # if self.config.d_cond==True:
+        #     import pdb; pdb.set_trace()
+        #     y = self.model(x)
+        #     x = torch.cat([x, y],2)
+        # else:
+        #     x = self.model(x)
+        return self.model(x)
 
 
 

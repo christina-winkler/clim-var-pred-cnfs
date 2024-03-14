@@ -49,7 +49,6 @@ def main(args):
         args.device = "cpu"
 
     print("Device", args.device)
-    args.device = "cpu"
 
     # Build name of current model
     if args.modelname is None:
