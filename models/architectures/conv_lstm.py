@@ -164,7 +164,6 @@ class GatedConvNet(nn.Module):
         self.nn[-1].bias.data.zero_()
 
     def forward(self, x):
-        import pdb; pdb.set_trace()
         out = self.nn(x.cuda()).cuda()
         return out
 

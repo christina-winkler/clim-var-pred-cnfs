@@ -144,7 +144,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
     os.makedirs(viz_dir, exist_ok=True)
 
     writer = SummaryWriter("{}".format(args.experiment_dir))
-    prev_nll_epoch = np.inf
+    prev_loss_epoch = np.inf
     logging_step = 0
     step = 0
     schedule_resl = ScheduleResolution(args, len(train_loader), {'G': generator, 'D': discriminator})
@@ -211,7 +211,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             x_past, x_for = data[:,:, :2,...], data[:,:, 2:,...]
 
             # generate future sequence
-            noise = torch.randn_like(x_past)
+            noise = torch.randn_like(x_past)[:,:,0,...]
             gen_x_for = generator(x_past, noise) # takes in sequence of past frames to predict sequence of future frames
 
             # distinguish between real and fake sequences
@@ -300,72 +300,71 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                     # # plt.show()
 
                     # visualize past frames the prediction is based on (context)
-                    grid_past = torchvision.utils.make_grid(x_past[0:9, -1, :, :].cpu(), normalize=True, nrow=3)
-                    array_imgs_past = np.array(grid_past.permute(2,1,0)[:,:,0].contiguous().unsqueeze(2))
-                    cmap_past = np.apply_along_axis(cm.inferno, 2, array_imgs_past)
-                    past_imgs = wandb.Image(cmap_past, caption="Frame at t-1")
+                    # grid_past = torchvision.utils.make_grid(x_past[0:9, -1, :, :].cpu(), normalize=True, nrow=3)
+                    # array_imgs_past = np.array(grid_past.permute(2,1,0)[:,:,0].contiguous().unsqueeze(2))
+                    # cmap_past = np.apply_along_axis(cm.inferno, 2, array_imgs_past)
+                    # past_imgs = wandb.Image(cmap_past, caption="Frame at t-1")
                     # wandb.log({"Context Frame at t-1 (train) {}".format(step) : past_imgs})
 
-                    plt.figure()
-                    plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
-                    plt.axis('off')
-                    plt.title("Context Frame at t-1 (train)")
-                    plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
+                    # plt.figure()
+                    # plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+                    # plt.axis('off')
+                    # plt.title("Context Frame at t-1 (train)")
+                    # plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
 
                     # # visualize future frame of the correct prediction
-                    grid_future = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
-                    array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))
-                    cmap_future = np.apply_along_axis(cm.inferno, 2, array_imgs_future)
-                    future_imgs = wandb.Image(cmap_future, caption="Frame at t")
+                    # grid_future = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
+                    # array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))
+                    # cmap_future = np.apply_along_axis(cm.inferno, 2, array_imgs_future)
+                    # future_imgs = wandb.Image(cmap_future, caption="Frame at t")
                     # wandb.log({"Frame at t (train) {}".format(step) : future_imgs})
 
-                    plt.figure()
-                    plt.imshow(grid_future.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
-                    plt.axis('off')
-                    plt.title("Ground Truth at t")
-                    plt.savefig(viz_dir + '/frame_at_t_{}.png'.format(step), dpi=300)
+                    # plt.figure()
+                    # plt.imshow(grid_future.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+                    # plt.axis('off')
+                    # plt.title("Ground Truth at t")
+                    # plt.savefig(viz_dir + '/frame_at_t_{}.png'.format(step), dpi=300)
 
                      # predicting a new sample based on context window
                     print("Predicting ...")
-                    # predictions, _, _ = model._predict(x_past.cuda(), state) # TODO: sample longer trajectories
-                    predictions = generator(x_past)
-                    grid_pred = torchvision.utils.make_grid(predictions[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
-                    array_imgs_pred = np.array(grid_pred.permute(2,1,0)[:,:,0].unsqueeze(2))
-                    cmap_pred = np.apply_along_axis(cm.inferno, 2, array_imgs_pred)
-                    future_pred = wandb.Image(cmap_pred, caption="Frame at t")
+                    grid_pred = torchvision.utils.make_grid(gen_x_for[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
+                    # array_imgs_pred = np.array(grid_pred.permute(2,1,0)[:,:,0].unsqueeze(2))
+                    # cmap_pred = np.apply_along_axis(cm.inferno, 2, array_imgs_pred)
+                    # future_pred = wandb.Image(cmap_pred, caption="Frame at t")
                     # wandb.log({"Predicted frame at t (train) {}".format(step) : future_pred})
 
                     # visualize predictions
-                    grid_samples = torchvision.utils.make_grid(predictions[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
+                    grid_samples = torchvision.utils.make_grid(gen_x_for[0:9, :, :, :].squeeze(1).cpu(),normalize=True, nrow=3)
                     plt.figure()
-                    plt.imshow(grid_samples.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+                    plt.imshow(grid_pred.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
                     plt.axis('off')
                     plt.title("Prediction at t")
-                    plt.show()
-                    plt.savefig(viz_dir + '/samples_{}.png'.format(step), dpi=300)
+                    # plt.show()
+                    plt.savefig(viz_dir + '/predictions_{}.png'.format(step), dpi=300)
+                    plt.close()
 
 
             if step % args.val_interval == 0:
                 print('Validating model ... ')
-                nll_valid = validate(model_without_dataparallel,
+                loss_valid = validate(generator, discriminator,
                                      valid_loader,
                                      args.experiment_dir,
                                      "{}".format(step),
                                      args)
 
-                writer.add_scalar("nll_valid",
-                                  nll_valid.mean().item(),
+                writer.add_scalar("loss_valid",
+                                  loss_valid.mean().item(),
                                   logging_step)
 
                 # save checkpoint only when nll lower than previous model
-                if nll_valid < prev_nll_epoch:
+                if loss_valid < prev_loss_epoch:
                     PATH = args.experiment_dir + '/model_checkpoints/'
                     os.makedirs(PATH, exist_ok=True)
                     torch.save({'epoch': epoch,
-                                'model_state_dict': model.state_dict(),
+                                'model_state_dict': generator.state_dict(),
                                 'optimizer_state_dict': optimizer.state_dict(),
-                                'loss': nll_valid.mean()}, PATH+ f"model_epoch_{epoch}_step_{step}.tar")
-                    prev_nll_epoch = nll_valid
+                                'loss': loss_valid.mean()}, PATH+ f"generator_epoch_{epoch}_step_{step}.tar")
+                    prev_loss_epoch = loss_valid
 
             logging_step += 1
 
