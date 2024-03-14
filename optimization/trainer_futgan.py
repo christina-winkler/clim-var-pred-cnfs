@@ -208,7 +208,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
 
             # distinguish between real and fake sequences
             # compute score - float
-            score_real = discriminator(x_for.detach())
+            score_real = discriminator(x_for)
             score_fake = discriminator(gen_x_for.detach())
 
             # define tensors
