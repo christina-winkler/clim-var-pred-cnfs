@@ -102,7 +102,7 @@ parser.add_argument("--condch", type=int, default=128//8,
                         help="# of residual-in-residual blocks in LR network.")
 
 # data
-parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
+parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
                         help="Dataset to train the model on.")
 parser.add_argument("--trainset", type=str, default="temp",
                         help="Dataset to train the model on.")
@@ -192,7 +192,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
             x = item[0].to(args.device)
             latitude, longitude = item[3], item[4]
-            
+
             x_unorm = item[1].to(args.device)
 
             x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
@@ -319,7 +319,8 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
             rmse08.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
 
             # weighted RMSE
-            w_rmse.append(metrics.weighted_RMSE(x_new.cpu(), x_for_new.cpu(), latitude, longitude))
+            pdb.set_trace()
+            w_rmse.append(metrics.weighted_RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm, latitude, longitude))
 
             print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
 
@@ -385,6 +386,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
     rmse08 = []
     rmse08unorm = []
     mae08unorm = []
+    w_rmse = []
 
     nll_st_08 = []
     nll_sr = []
@@ -409,6 +411,7 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
         for batch_idx, item in enumerate(test_loader):
             # Move data to the specified device
             x = item[0].to(args.device)
+            latitude, longitude = item[3], item[4]
             x_unorm = item[1].to(args.device)
 
             # Split input data into past and future sequences
@@ -541,6 +544,9 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             # RMSE
             rmse08unorm.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
             rmse08.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
+
+            # weighted RMSE
+            w_rmse.append(metrics.weighted_RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()).cpu(),x_for_unorm.cpu(), latitude, longitude))
 
             # NLL
             nll_st_08.append(nll_st_1)
@@ -877,7 +883,7 @@ if __name__ == "__main__":
 
     args.device = "cuda"
 
-    metrics_eval_all()
+    # metrics_eval_all()
 
     if args.ds or args.s > 1: # simulation run on downsampled / embedded representation
 
@@ -966,5 +972,5 @@ if __name__ == "__main__":
         print('Nr of Trainable Params {}:  '.format(args.device), params)
         print("Evaluate on test split ...")
         # test(model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.Lst, args.Kst), modelname, -99999, args)
-        # metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
+        metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
         # metrics_eval_all()
