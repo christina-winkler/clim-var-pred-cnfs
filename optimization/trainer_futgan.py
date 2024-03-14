@@ -13,6 +13,7 @@ import numpy as np
 import random
 import pdb
 import torchvision
+from torch.autograd import Variable
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
 from models.architectures.conv_lstm import *
@@ -210,7 +211,12 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             score_real = discriminator(x_for)
             score_fake = discriminator(gen_x_for)
 
+            # define tensors
+            real_label = Variable(torch.FloatTensor(args.bsz, 1).fill_(1))
+            fake_label = Variable(torch.FloatTensor(args.bsz, 1).fill_(0))
+
             # Compute gradients
+            import pdb; pdb.set_trace()
             nll.mean().backward()
 
             # Update model parameters using calculated gradients

@@ -61,7 +61,7 @@ def conv(layers, c_in, c_out, k_size, stride=1, pad=0, padding='zero', lrelu=Tru
 def linear(layers, c_in, c_out, sig=True, w_norm=False):
 
     layers.append(Flatten())
-    print(c_in)
+
     if w_norm:  layers.append(EqualizedLinear(c_in, c_out))
     else:       layers.append(nn.Linear(c_in, c_out))
     if sig:     layers.append(nn.Sigmoid())
@@ -470,7 +470,7 @@ class Discriminator(nn.Module):
             param.requires_grad = False
 
     def forward(self, x):
-        # import pdb; pdb.set_trace()
         out = self.model[0](x)
         out = self.model[1](out)
-        return x
+        out = torch.sigmoid(out.view(x.size(0),-1)).mean(1)
+        return out
