@@ -41,6 +41,8 @@ class ScheduleResolution():
         self.len_dset = len_dset
         self.fadein = {'G':None, 'D':None} # TODO adapt
         self.nsamples = 0
+        self.max_resl = 128
+        self.phase = 'init'
 
     def schedule_resl(self):
 
@@ -56,7 +58,6 @@ class ScheduleResolution():
         # update alpha if FadeInLayer exist
         if self.fadein['D'] is not None:
             if self.resl%1.0 < (self.trns_tick)*delta:
-                import pdb; pdb.set_trace()
                 self.fadein['G'][0].update_alpha(d_alpha)
                 self.fadein['G'][1].update_alpha(d_alpha)
                 self.fadein['D'].update_alpha(d_alpha)
@@ -106,6 +107,29 @@ class ScheduleResolution():
             if floor(self.resl) >= self.max_resl and self.resl%1.0 >= self.trns_tick*delta:
                 self.phase = 'final'
                 self.resl = self.max_resl+self.trns_tick*delta
+
+def feed_interpolated_input(x, resl, max_resl, phase='Gtrns', use_cuda=True):
+
+        # interpolate input to match network resolution
+        if phase == 'Gtrns' and floor(resl)>2 and floor(resl)<=max_resl:
+            alpha = self.complete/100.0
+            transform = transforms.Compose( [   transforms.ToPILImage(),
+                                                transforms.Resize(size=int(pow(2,floor(resl)-1)), interpolation=0),      # 0: nearest
+                                                transforms.Resize(size=int(pow(2,floor(resl))), interpolation=0),      # 0: nearest
+                                                transforms.ToTensor(),
+                                            ] )
+
+            x_low = x.clone().add(1).mul(0.5)
+            for i in range(x_low.size(0)):
+                for j in range(x_low.size(2)):
+                    x_low[i,:,j,:,:] = transform(x_low[i,:,j,:,:]).mul(2).add(-1)
+            x = torch.add(x.mul(alpha), x_low.mul(1-alpha))
+
+        if use_cuda:
+            return x.cuda()
+        else:
+            return x
+
 
 def trainer(args, train_loader, valid_loader, generator, discriminator,
             device='cpu', needs_init=True, ckpt=None):
@@ -163,7 +187,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             x = item[0].to(device)
 
             # split time series into lags and prediction window
-            x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
+            # x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
 
             # schedule resolution
             schedule_resl.schedule_resl()
@@ -175,18 +199,16 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             optimizerD.zero_grad()
 
             # interpolate discriminator real output
-            # TODO self.x.data = self.feed_interpolated_input(self.get_batch())
+            data = feed_interpolated_input(x,resl=schedule_resl.resl,max_resl=schedule_resl.max_resl).to(args.device) # whole sequence
+            x_past, x_for = data[:,:, :2,...], data[:,:, 2:,...]
 
-            # # We need to init the underlying module in the dataparallel object
-            # For ActNorm layers.
-            # if needs_init and torch.cuda.device_count() > 1:
-            #     bsz_p_gpu = args.bsz // torch.cuda.device_count()
-            #     _, _ = model.module.forward(x_hr=y[:bsz_p_gpu],
-            #                                 xlr=x[:bsz_p_gpu],
-            #                                 logdet=0)
+            # generate future sequence
+            gen_x_for = generator(x_past) # takes in sequence of past frames to predict sequence of future frames
 
-            z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
-            writer.add_scalar("nll_train", nll.mean().item(), step)
+            # distinguish between real and fake sequences
+            # compute score - float
+            score_real = discriminator(x_for)
+            score_fake = discriminator(gen_x_for)
 
             # Compute gradients
             nll.mean().backward()

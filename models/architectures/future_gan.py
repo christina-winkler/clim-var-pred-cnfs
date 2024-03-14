@@ -61,6 +61,7 @@ def conv(layers, c_in, c_out, k_size, stride=1, pad=0, padding='zero', lrelu=Tru
 def linear(layers, c_in, c_out, sig=True, w_norm=False):
 
     layers.append(Flatten())
+    print(c_in)
     if w_norm:  layers.append(EqualizedLinear(c_in, c_out))
     else:       layers.append(nn.Linear(c_in, c_out))
     if sig:     layers.append(nn.Sigmoid())
@@ -236,7 +237,6 @@ class FutureGenerator(nn.Module):
             # we make new network since pytorch does not support remove_module()
             new_model = nn.Sequential()
             new_model.add_module('concat_block_encode', Concat(prev_block_encode, next_block_encode))
-            pdb.set_trace()
             new_model.add_module('fadein_block_encode', FadeInLayer(self.config))
 
             low_resl_to_rgb = deepcopy_module(self.model, 'to_rgb_block')
@@ -345,7 +345,7 @@ class Discriminator(nn.Module):
         self.layer_name = None
         self.module_names = []
         self.model = self.get_init_dis()
-
+        self.nframes=1
 
     def last_block(self):
 
@@ -354,7 +354,7 @@ class Discriminator(nn.Module):
         layers = []
         layers.append(MinibatchStdConcatLayer())
         layers = conv(layers, ndim+1, ndim, 3, 1, 1, self.padding, self.lrelu, self.batch_norm, self.w_norm, self.d_gdrop, pixel_norm=False)
-        layers = conv(layers, ndim, ndim, (self.nframes,4,4), 1, 0, self.padding, self.lrelu, self.batch_norm, self.w_norm, self.d_gdrop, pixel_norm=False)
+        layers = conv(layers, ndim, ndim, (1,4,4), 1, 0, self.padding, self.lrelu, self.batch_norm, self.w_norm, self.d_gdrop, pixel_norm=False)
         layers = linear(layers, ndim, 1, sig=self.d_sigmoid, w_norm=self.w_norm)
         return  nn.Sequential(*layers), ndim
 
@@ -469,8 +469,8 @@ class Discriminator(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-
     def forward(self, x):
-
-        x = self.model(x)
+        # import pdb; pdb.set_trace()
+        out = self.model[0](x)
+        out = self.model[1](out)
         return x

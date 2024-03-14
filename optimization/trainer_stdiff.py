@@ -150,8 +150,8 @@ def trainer(args, train_loader, valid_loader, diffusion, model,
 
                     model.eval()
 
-                    sampled_images = diffusion.sample(model, n=args.bsz, targets=x_for)
-                    ema_sampled_images = diffusion.sample(ema_model, n=args.bsz, targets=x_for)
+                    sampled_images = diffusion.sample(model, n=1, targets=x_for)
+                    ema_sampled_images = diffusion.sample(ema_model, n=1, targets=x_for)
 
                     # testing reconstruction - should be exact same as x_for
                     # pdb.set_trace()

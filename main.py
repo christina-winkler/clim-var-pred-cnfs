@@ -227,7 +227,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # train configs
-    parser.add_argument("--modeltype", type=str, default="diff",
+    parser.add_argument("--modeltype", type=str, default="futgan",
                         help="Specify modeltype you would like to train [flow, diff, unet3d, convLSTM, futgan, spategan].")
     parser.add_argument("--model_path", type=str, default="runs/",
                         help="Directory where models are saved.")
@@ -296,7 +296,7 @@ if __name__ == "__main__":
     parser.add_argument("--trainset", type=str, default="geop",
                         help="Dataset to train the model on.")
 
-    # GAN config options
+    # FutureGAN config options
     parser.add_argument('--dgx', type=bool, default=False, help='set to True, if code is run on dgx, default=`False`')
     parser.add_argument('--ngpu', type=int, default=1, help='number of gpus for (multi-)gpu training, default=1')
     parser.add_argument('--random_seed', type=int, default=int(time.time()), help='seed for generating random numbers, default = `int(time.time())`')
@@ -309,10 +309,10 @@ if __name__ == "__main__":
     parser.add_argument('--experiment_name', type=str, default='', help='name of experiment (if empty, current date and time will be used), default=``')
 
     parser.add_argument('--d_cond', type=bool, default=True, help='condition discriminator on input frames, default=`True`')
-    parser.add_argument('--nc', type=int, default=3, help='number of input image color channels, default=3')
+    parser.add_argument('--nc', type=int, default=1, help='number of input image color channels, default=3')
     parser.add_argument('--max_resl', type=int, default=128, help='max. frame resolution --> image size: max_resl x max_resl , default=128')
-    parser.add_argument('--nframes_in', type=int, default=6, help='number of input video frames in one sample, default=12')
-    parser.add_argument('--nframes_pred', type=int, default=6, help='number of video frames to predict in one sample, default=6')
+    parser.add_argument('--nframes_in', type=int, default=2, help='number of input video frames in one sample, default=12')
+    parser.add_argument('--nframes_pred', type=int, default=1, help='number of video frames to predict in one sample, default=6')
     # p100
     parser.add_argument('--batch_size_table', type=dict, default={4:32, 8:16, 16:8, 32:4, 64:2, 128:1, 256:1, 512:1, 1024:1}, help='batch size table:{img_resl:batch_size, ...}, change according to available gpu memory')
     ## dgx
