@@ -233,6 +233,10 @@ def main(args):
                                  device=args.device)
 
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> f92363ffaf1d4c80c31cf59322dde8afd66401b9
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
