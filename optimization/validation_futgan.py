@@ -23,6 +23,8 @@ def validate(generator, discriminator, val_loader, exp_name, logstep, args):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+    color = 'inferno' if args.trainset == 'era5' else 'viridis'
+
     loss_list=[]
     generator.eval()
     # print(len(val_loader))
@@ -33,7 +35,7 @@ def validate(generator, discriminator, val_loader, exp_name, logstep, args):
 
             # split time series into lags and prediction window
             x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
-            noise = torch.randn_like(x_past)
+            noise = torch.randn_like(x_past)[:,:,0,...]
             gen_x_for = generator(x_past,noise)
             fake_score = discriminator(gen_x_for)
 
@@ -53,7 +55,7 @@ def validate(generator, discriminator, val_loader, exp_name, logstep, args):
 
         grid_ground_truth = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), nrow=3)
         plt.figure()
-        plt.imshow(grid_ground_truth.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+        plt.imshow(grid_ground_truth.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
         plt.axis('off')
         plt.title("Frame at t (valid)")
         plt.savefig(savedir + "x_t_step_{}_valid.png".format(logstep), dpi=300)
@@ -61,14 +63,14 @@ def validate(generator, discriminator, val_loader, exp_name, logstep, args):
         # visualize past frames the prediction is based on (context)
         grid_past = torchvision.utils.make_grid(x_past[0:9, -1, :, :].cpu(), nrow=3)
         plt.figure()
-        plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+        plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
         plt.axis('off')
         plt.title("Frame at t (valid)")
         plt.savefig(savedir + "_x_t_step_{}_valid.png".format(logstep), dpi=300)
 
         grid_mu0 = torchvision.utils.make_grid(gen_x_for[0:9,:,:,:].squeeze(1).cpu(), nrow=3)
         plt.figure()
-        plt.imshow(grid_mu0.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+        plt.imshow(grid_mu0.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
         plt.axis('off')
         plt.title("Prediction at t (valid), mu=0")
         plt.savefig(savedir + "prediction_logstep_{}_valid.png".format(logstep), dpi=300)

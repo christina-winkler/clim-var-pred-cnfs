@@ -17,7 +17,7 @@ from torch.autograd import Variable
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
 from models.architectures.conv_lstm import *
-from optimization.validation_stflow import validate
+from optimization.validation_futgan import validate
 
 import wandb
 os.environ["WANDB_SILENT"] = "true"
@@ -199,13 +199,6 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             optimizerG.zero_grad()
             optimizerD.zero_grad()
 
-            # # wrapping autograd Variable.
-            # self.z = Variable(torch.FloatTensor(self.batch_size, self.nc, self.nframes_in, self.img_size, self.img_size))
-            # self.x = Variable(torch.FloatTensor(self.batch_size, self.nc, self.nframes, self.img_size, self.img_size))
-            # self.x_gen = Variable(torch.FloatTensor(self.batch_size, self.nc, self.nframes_pred, self.img_size, self.img_size))
-            # self.z_x_gen = Variable(torch.FloatTensor(self.batch_size, self.nc, self.nframes, self.img_size, self.img_size))
-            #
-
             # interpolate discriminator real output
             data = feed_interpolated_input(x,resl=schedule_resl.resl,max_resl=schedule_resl.max_resl).to(args.device) # whole sequence
             x_past, x_for = data[:,:, :2,...], data[:,:, 2:,...]
@@ -347,10 +340,10 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             if step % args.val_interval == 0:
                 print('Validating model ... ')
                 loss_valid = validate(generator, discriminator,
-                                     valid_loader,
-                                     args.experiment_dir,
-                                     "{}".format(step),
-                                     args)
+                                      valid_loader,
+                                      args.experiment_dir,
+                                      "{}".format(step),
+                                      args)
 
                 writer.add_scalar("loss_valid",
                                   loss_valid.mean().item(),
@@ -362,7 +355,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                     os.makedirs(PATH, exist_ok=True)
                     torch.save({'epoch': epoch,
                                 'model_state_dict': generator.state_dict(),
-                                'optimizer_state_dict': optimizer.state_dict(),
+                                'optimizer_state_dict': optimizerG.state_dict(),
                                 'loss': loss_valid.mean()}, PATH+ f"generator_epoch_{epoch}_step_{step}.tar")
                     prev_loss_epoch = loss_valid
 
@@ -380,8 +373,8 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             else:
                 model_without_dataparallel = model
 
-            utils.save_model(model_without_dataparallel,
-                             epoch, optimizer, args, time=True)
+            utils.save_model(generator,
+                             epoch, optimizerG, args, time=True)
 
             print("Saved trained model :)")
             wandb.finish()
