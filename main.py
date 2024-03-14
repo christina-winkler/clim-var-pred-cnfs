@@ -15,7 +15,7 @@ import time
 import os
 
 # Models
-from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan, ddpm_conditional, conv_lstm_diff, diff_modules
+from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan, ddpm_conditional, conv_lstm_diff, diff_modules, 3dgan
 
 # Optimization
 from optimization import trainer_stflow, trainer_stflow_ds, trainer_stdiff, trainer_stdiff_ds, trainer_unet3d, trainer_convlstm, trainer_futgan, trainer_spategan
@@ -171,6 +171,18 @@ def main(args):
                                discriminator=discriminator,
                                device=args.device)
 
+    elif args.modeltype == '3dgan':
+        height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
+
+        generator = 3dgan.net_G(config=args).to(args.device)
+        discriminator = 3dgan.net_D(config=args).to(args.device)
+
+        print('Training FutureGAN ...')
+        trainer_futgan.trainer(args=args, train_loader=train_loader,
+                               valid_loader=valid_loader, generator=generator,
+                               discriminator=discriminator,
+                               device=args.device)
+
     elif args.modeltype == 'spategan':
         args.height, args.width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
 
@@ -226,7 +238,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # train configs
-    parser.add_argument("--modeltype", type=str, default="futgan",
+    parser.add_argument("--modeltype", type=str, default="3dgan",
                         help="Specify modeltype you would like to train [flow, diff, unet3d, convLSTM, futgan, spategan].")
     parser.add_argument("--model_path", type=str, default="runs/",
                         help="Directory where models are saved.")
