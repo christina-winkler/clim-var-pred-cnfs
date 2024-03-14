@@ -1,0 +1,178 @@
+Nr of Trainable Params on cuda:   1387521
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(149)forward()
+-> out = self.nn[0](x.permute(1,0,2,3))
+  0%|                                                                                                                         | 0/18627 [00:00<?, ?it/s]
+tensor([[[[-0.8686, -0.8660, -0.8641,  ..., -0.8732, -0.8719, -0.8706],
+          [-0.9052, -0.8948, -0.8850,  ..., -0.9405, -0.9301, -0.9170],
+          [-0.8203, -0.8144, -0.8157,  ..., -0.8575, -0.8373, -0.8281],
+          ...,
+          [-0.5327, -0.5941, -0.6536,  ..., -0.4327, -0.4588, -0.4935],
+          [-0.4510, -0.4641, -0.4784,  ..., -0.4294, -0.4346, -0.4412],
+          [-0.4065, -0.4098, -0.4137,  ..., -0.3954, -0.3993, -0.4026]],
+         [[ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          ...,
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000]]],
+        [[[-0.5848, -0.5797, -0.5747,  ..., -0.5984, -0.5941, -0.5891],
+          [-0.5920, -0.5833, -0.5733,  ..., -0.6236, -0.6178, -0.6034],
+          [-0.6099, -0.6207, -0.6214,  ..., -0.6085, -0.6070, -0.6056],
+          ...,
+          [-0.3937, -0.3829, -0.3786,  ..., -0.4346, -0.4210, -0.4080],
+          [-0.5726, -0.5819, -0.5920,  ..., -0.5611, -0.5611, -0.5654],
+          [-0.7076, -0.7105, -0.7134,  ..., -0.7019, -0.7033, -0.7055]],
+         [[ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          ...,
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000]]],
+        [[[-0.7255, -0.7263, -0.7270,  ..., -0.7270, -0.7263, -0.7255],
+          [-0.7095, -0.7095, -0.7080,  ..., -0.7124, -0.7109, -0.7088],
+          [-0.7321, -0.7255, -0.7146,  ..., -0.7131, -0.7292, -0.7336],
+          ...,
+          [-0.6533, -0.6650, -0.6832,  ..., -0.5766, -0.6036, -0.6401],
+          [-0.6241, -0.6241, -0.6168,  ..., -0.6372, -0.6292, -0.6241],
+          [-0.7051, -0.6912, -0.6774,  ..., -0.7577, -0.7387, -0.7212]],
+         [[ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          ...,
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000]]],
+        ...,
+        [[[-0.8632, -0.8691, -0.8749,  ..., -0.8486, -0.8530, -0.8581],
+          [-0.8486, -0.8588, -0.8713,  ..., -0.8361, -0.8383, -0.8420],
+          [-0.8296, -0.8259, -0.8237,  ..., -0.8808, -0.8625, -0.8435],
+          ...,
+          [-0.8142, -0.8339, -0.8508,  ..., -0.7579, -0.7740, -0.7937],
+          [-0.8091, -0.8193, -0.8296,  ..., -0.7637, -0.7842, -0.8003],
+          [-0.7162, -0.7191, -0.7213,  ..., -0.7023, -0.7074, -0.7125]],
+         [[ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          ...,
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000]]],
+        [[[-0.8979, -0.9009, -0.9032,  ..., -0.8911, -0.8934, -0.8956],
+          [-0.8438, -0.8506, -0.8581,  ..., -0.8153, -0.8251, -0.8348],
+          [-0.8446, -0.8634, -0.8739,  ..., -0.7260, -0.7703, -0.8138],
+          ...,
+          [-0.7050, -0.7177, -0.7222,  ..., -0.6884, -0.6907, -0.6944],
+          [-0.7515, -0.7628, -0.7755,  ..., -0.7207, -0.7297, -0.7402],
+          [-0.7755, -0.7860, -0.7958,  ..., -0.7395, -0.7515, -0.7635]],
+         [[ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          ...,
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000]]],
+        [[[-0.8134, -0.8114, -0.8087,  ..., -0.8161, -0.8154, -0.8147],
+          [-0.8087, -0.8046, -0.7985,  ..., -0.7951, -0.8026, -0.8073],
+          [-0.7424, -0.7458, -0.7478,  ..., -0.7329, -0.7336, -0.7370],
+          ...,
+          [-0.7667, -0.7661, -0.7661,  ..., -0.7579, -0.7606, -0.7647],
+          [-0.7850, -0.7965, -0.8080,  ..., -0.7512, -0.7620, -0.7735],
+          [-0.7904, -0.7972, -0.8026,  ..., -0.7715, -0.7776, -0.7836]],
+         [[ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          ...,
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000],
+          [ 0.0000,  0.0000,  0.0000,  ...,  0.0000,  0.0000,  0.0000]]]],
+       device='cuda:0')
+torch.Size([16, 2, 32, 64])
+*** RuntimeError: Given groups=1, weight of size [128, 2, 3, 3, 3], expected input[1, 16, 2, 32, 64] to have 2 channels, but got 16 channels instead
+*** RuntimeError: Given groups=1, weight of size [128, 2, 3, 3, 3], expected input[1, 16, 2, 32, 64] to have 2 channels, but got 16 channels instead
+torch.Size([128, 16, 32, 64])
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(150)forward()
+-> out = self.nn[1](out)
+torch.Size([128, 16, 32, 64])
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(151)forward()
+-> out = self.nn[2](out)
+torch.Size([128, 16, 32, 64])
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(152)forward()
+-> out = self.nn[3](out)
+torch.Size([128, 16, 32, 64])
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(153)forward()
+-> out = self.nn[4](out)
+torch.Size([128, 16, 32, 64])
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(154)forward()
+-> out = self.nn[5](out)
+torch.Size([128, 16, 32, 64])
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(155)forward()
+-> out = self.nn[6](out)
+torch.Size([128, 16, 32, 64])
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(156)forward()
+-> out = self.nn[7](out)
+torch.Size([128, 16, 32, 64])
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(157)forward()
+-> out = self.nn[8](out)
+  0%|                                                                                                                         | 0/18627 [01:41<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 88, in trainer
+    out = model.forward(x=x_past)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 70, in forward
+    h,c = self.convLSTMcell(x[:,:,time_step],(h,c))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 107, in forward
+    out = self.gated_conv_net(X).cuda()
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 157, in forward
+    import pdb; pdb.set_trace()
+          ^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 90, in trace_dispatch
+    return self.dispatch_line(frame)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 115, in dispatch_line
+    if self.quitting: raise BdbQuit
+                      ^^^^^^^^^^^^^
+bdb.BdbQuit
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 88, in trainer
+    out = model.forward(x=x_past)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 70, in forward
+    h,c = self.convLSTMcell(x[:,:,time_step],(h,c))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 107, in forward
+    out = self.gated_conv_net(X).cuda()
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 157, in forward
+    import pdb; pdb.set_trace()
+          ^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 90, in trace_dispatch
+    return self.dispatch_line(frame)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 115, in dispatch_line
+    if self.quitting: raise BdbQuit
+                      ^^^^^^^^^^^^^
+bdb.BdbQuit

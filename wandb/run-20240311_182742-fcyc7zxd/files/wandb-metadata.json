@@ -1,0 +1,107 @@
+{
+    "os": "Linux-5.15.0-97-generic-x86_64-with-glibc2.31",
+    "python": "3.11.4",
+    "heartbeatAt": "2024-03-11T17:27:43.618912",
+    "startedAt": "2024-03-11T17:27:42.947580",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--train"
+    ],
+    "state": "running",
+    "program": "/home/christina/Documents/climsim_ds/main.py",
+    "codePath": "main.py",
+    "git": {
+        "remote": "https://github.com/christina-winkler/climsim_ds.git",
+        "commit": "ab5d44318a104e7d98d55f2284cec06e9fd34a38"
+    },
+    "email": "ce.winkler@tum.de",
+    "root": "/home/christina/Documents/climsim_ds",
+    "host": "hades",
+    "username": "christina",
+    "executable": "/home/christina/anaconda3/envs/stflow/bin/python",
+    "cpu_count": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq": {
+        "current": 2.6017500000000005,
+        "min": 800.0,
+        "max": 5000.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.621,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        },
+        {
+            "current": 2.6,
+            "min": 800.0,
+            "max": 5000.0
+        }
+    ],
+    "disk": {
+        "total": 36.37065505981445,
+        "used": 32.67689895629883
+    },
+    "gpu": "NVIDIA GeForce GTX 1650 Ti",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce GTX 1650 Ti",
+            "memory_total": 4104323072
+        }
+    ],
+    "memory": {
+        "total": 15.241813659667969
+    }
+}

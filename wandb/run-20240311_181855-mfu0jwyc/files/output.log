@@ -1,0 +1,53 @@
+Nr of Trainable Params on cuda:   1411716
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py(111)forward()
+-> i_, f_, o_, g_ = torch.chunk(out, 4, dim=1)
+  0%|                                                                                                                         | 0/18627 [00:00<?, ?it/s]
+  0%|                                                                                                                         | 0/18627 [00:28<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 88, in trainer
+    out = model.forward(x=x_past)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 70, in forward
+    h,c = self.convLSTMcell(x[:,:,time_step],(h,c))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 111, in forward
+    i_, f_, o_, g_ = torch.chunk(out, 4, dim=1)
+                     ^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 90, in trace_dispatch
+    return self.dispatch_line(frame)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 115, in dispatch_line
+    if self.quitting: raise BdbQuit
+                      ^^^^^^^^^^^^^
+bdb.BdbQuit
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 88, in trainer
+    out = model.forward(x=x_past)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 70, in forward
+    h,c = self.convLSTMcell(x[:,:,time_step],(h,c))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm_diff.py", line 111, in forward
+    i_, f_, o_, g_ = torch.chunk(out, 4, dim=1)
+                     ^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 90, in trace_dispatch
+    return self.dispatch_line(frame)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 115, in dispatch_line
+    if self.quitting: raise BdbQuit
+                      ^^^^^^^^^^^^^
+bdb.BdbQuit

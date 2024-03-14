@@ -1,0 +1,28 @@
+2024-03-11 17:20:30,499 INFO    MainThread:23334 [wandb_setup.py:_flush():76] Current SDK version is 0.15.4
+2024-03-11 17:20:30,499 INFO    MainThread:23334 [wandb_setup.py:_flush():76] Configure stats pid to 23334
+2024-03-11 17:20:30,499 INFO    MainThread:23334 [wandb_setup.py:_flush():76] Loading settings from /home/christina/.config/wandb/settings
+2024-03-11 17:20:30,499 INFO    MainThread:23334 [wandb_setup.py:_flush():76] Loading settings from /home/christina/Documents/climsim_ds/wandb/settings
+2024-03-11 17:20:30,500 INFO    MainThread:23334 [wandb_setup.py:_flush():76] Loading settings from environment variables: {'silent': 'true'}
+2024-03-11 17:20:30,500 INFO    MainThread:23334 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-03-11 17:20:30,500 INFO    MainThread:23334 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'main.py', 'program': '/home/christina/Documents/climsim_ds/main.py'}
+2024-03-11 17:20:30,500 INFO    MainThread:23334 [wandb_init.py:_log_setup():507] Logging user logs to /home/christina/Documents/climsim_ds/wandb/run-20240311_172030-ik1bzo7k/logs/debug.log
+2024-03-11 17:20:30,500 INFO    MainThread:23334 [wandb_init.py:_log_setup():508] Logging internal logs to /home/christina/Documents/climsim_ds/wandb/run-20240311_172030-ik1bzo7k/logs/debug-internal.log
+2024-03-11 17:20:30,501 INFO    MainThread:23334 [wandb_init.py:init():547] calling init triggers
+2024-03-11 17:20:30,501 INFO    MainThread:23334 [wandb_init.py:init():554] wandb.init called with sweep_config: {}
+config: {'modeltype': 'diff', 'model_path': 'runs/', 'modelname': 'diff_geop_bsz16_K2_L3_lr0.0002_s1', 'epochs': 10000, 'max_steps': 2000000, 'log_interval': 100, 'val_interval': 250, 'visual': False, 'noscaletest': False, 'noscale': False, 'testmode': False, 'train': True, 'resume': False, 'ds': False, 'nbits': 8, 's': 1, 'crop_size': 500, 'patch_size': 500, 'bsz': 16, 'seq_len': 2, 'lag_len': 2, 'lead_len': 1, 'lr': 0.0002, 'filter_size': 256, 'Lst': 3, 'Kst': 2, 'Lsr': 3, 'Ksr': 2, 'nb': 16, 'condch': 16, 'datadir': '/home/christina/Documents/climsim_ds/data', 'trainset': 'geop', 'dgx': False, 'ngpu': 1, 'random_seed': 1710174026, 'ext': ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm'], 'use_ckpt': False, 'ckpt_path': None, 'data_root': '', 'log_dir': './logs', 'experiment_name': '', 'd_cond': True, 'nc': 3, 'max_resl': 128, 'nframes_in': 6, 'nframes_pred': 6, 'batch_size_table': {4: 32, 8: 16, 16: 8, 32: 4, 64: 2, 128: 1, 256: 1, 512: 1, 1024: 1}, 'trns_tick': 10, 'stab_tick': 10, 'nz': 512, 'ngf': 512, 'ndf': 512, 'loss': 'wgan_gp', 'd_eps_penalty': True, 'acgan': False, 'optimizer': 'adam', 'beta1': 0.0, 'beta2': 0.99, 'lr_decay': 0.87, 'lrelu': True, 'padding': 'zero', 'w_norm': True, 'batch_norm': False, 'g_pixelwise_norm': True, 'd_gdrop': False, 'g_tanh': False, 'd_sigmoid': False, 'x_add_noise': False, 'z_pixelwise_norm': False, 'tb_logging': False, 'update_tb_every': 100, 'save_img_every': 100, 'save_ckpt_every': 5, 'device': device(type='cuda'), 'num_gpus': 1, 'parallel': False}
+2024-03-11 17:20:30,501 INFO    MainThread:23334 [wandb_init.py:init():596] starting backend
+2024-03-11 17:20:30,501 INFO    MainThread:23334 [wandb_init.py:init():600] setting up manager
+2024-03-11 17:20:30,503 INFO    MainThread:23334 [backend.py:_multiprocessing_setup():106] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2024-03-11 17:20:30,504 INFO    MainThread:23334 [wandb_init.py:init():606] backend started and connected
+2024-03-11 17:20:30,506 INFO    MainThread:23334 [wandb_init.py:init():703] updated telemetry
+2024-03-11 17:20:30,510 INFO    MainThread:23334 [wandb_init.py:init():736] communicating run to backend with 60.0 second timeout
+2024-03-11 17:20:30,944 INFO    MainThread:23334 [wandb_run.py:_on_init():2176] communicating current version
+2024-03-11 17:20:31,003 INFO    MainThread:23334 [wandb_run.py:_on_init():2185] got version response upgrade_message: "wandb version 0.16.4 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2024-03-11 17:20:31,003 INFO    MainThread:23334 [wandb_init.py:init():787] starting run threads in backend
+2024-03-11 17:20:37,726 INFO    MainThread:23334 [wandb_run.py:_console_start():2155] atexit reg
+2024-03-11 17:20:37,726 INFO    MainThread:23334 [wandb_run.py:_redirect():2010] redirect: 3
+2024-03-11 17:20:37,726 INFO    MainThread:23334 [wandb_run.py:_redirect():2075] Wrapping output streams.
+2024-03-11 17:20:37,726 INFO    MainThread:23334 [wandb_run.py:_redirect():2100] Redirects installed.
+2024-03-11 17:20:37,726 INFO    MainThread:23334 [wandb_init.py:init():828] run started, returning control to user process
+2024-03-11 17:20:46,345 WARNING MsgRouterThr:23334 [router.py:message_loop():77] message_loop has been closed

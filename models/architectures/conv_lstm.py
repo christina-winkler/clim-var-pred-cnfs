@@ -98,6 +98,8 @@ class ConvLSTMCell(nn.Module):
 
     def forward(self, x_t, state_t=None):
 
+        # TODO: if self c_next h_next not none use it again
+
         h_t, c_t = state_t # h: [] c: []
 
         # concat
@@ -135,7 +137,7 @@ class GatedConv(nn.Module):
         return x + val * torch.sigmoid(gate)
 
 class GatedConvNet(nn.Module):
-    # taken from: https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/tutorial11/NF_image_modeling.html
+    # adapted to 3DConvs from: https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/tutorial11/NF_image_modeling.html
     # paper: https://arxiv.org/pdf/1612.08083v3.pdf
     def __init__(self, c_in, c_hidden=128, c_out=-1, num_layers=6):
         """

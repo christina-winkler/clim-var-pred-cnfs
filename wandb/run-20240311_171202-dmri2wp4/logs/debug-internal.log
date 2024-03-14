@@ -1,0 +1,186 @@
+2024-03-11 17:12:02,492 INFO    StreamThr :22041 [internal.py:wandb_internal():86] W&B internal server running at pid: 22041, started at: 2024-03-11 17:12:02.492564
+2024-03-11 17:12:02,493 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: status
+2024-03-11 17:12:02,495 INFO    WriterThread:22041 [datastore.py:open_for_write():85] open: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/run-dmri2wp4.wandb
+2024-03-11 17:12:02,496 DEBUG   SenderThread:22041 [sender.py:send():369] send: header
+2024-03-11 17:12:02,498 DEBUG   SenderThread:22041 [sender.py:send():369] send: run
+2024-03-11 17:12:03,021 INFO    SenderThread:22041 [dir_watcher.py:__init__():211] watching files in: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files
+2024-03-11 17:12:03,021 INFO    SenderThread:22041 [sender.py:_start_run_threads():1100] run started: dmri2wp4 with start time 1710173522.49184
+2024-03-11 17:12:03,021 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: summary_record
+2024-03-11 17:12:03,021 INFO    SenderThread:22041 [sender.py:_save_file():1354] saving file wandb-summary.json with policy end
+2024-03-11 17:12:03,022 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: check_version
+2024-03-11 17:12:03,022 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: check_version
+2024-03-11 17:12:03,086 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: run_start
+2024-03-11 17:12:03,089 DEBUG   HandlerThread:22041 [system_info.py:__init__():31] System info init
+2024-03-11 17:12:03,089 DEBUG   HandlerThread:22041 [system_info.py:__init__():46] System info init done
+2024-03-11 17:12:03,090 INFO    HandlerThread:22041 [system_monitor.py:start():181] Starting system monitor
+2024-03-11 17:12:03,090 INFO    SystemMonitor:22041 [system_monitor.py:_start():145] Starting system asset monitoring threads
+2024-03-11 17:12:03,090 INFO    HandlerThread:22041 [system_monitor.py:probe():201] Collecting system info
+2024-03-11 17:12:03,092 INFO    SystemMonitor:22041 [interfaces.py:start():190] Started cpu monitoring
+2024-03-11 17:12:03,092 INFO    SystemMonitor:22041 [interfaces.py:start():190] Started disk monitoring
+2024-03-11 17:12:03,093 INFO    SystemMonitor:22041 [interfaces.py:start():190] Started gpu monitoring
+2024-03-11 17:12:03,094 INFO    SystemMonitor:22041 [interfaces.py:start():190] Started memory monitoring
+2024-03-11 17:12:03,095 INFO    SystemMonitor:22041 [interfaces.py:start():190] Started network monitoring
+2024-03-11 17:12:03,101 ERROR   gpu       :22041 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2024-03-11 17:12:03,118 DEBUG   HandlerThread:22041 [system_info.py:probe():195] Probing system
+2024-03-11 17:12:03,119 DEBUG   HandlerThread:22041 [system_info.py:_probe_git():180] Probing git
+2024-03-11 17:12:03,124 DEBUG   HandlerThread:22041 [system_info.py:_probe_git():188] Probing git done
+2024-03-11 17:12:03,124 DEBUG   HandlerThread:22041 [system_info.py:probe():240] Probing system done
+2024-03-11 17:12:03,124 DEBUG   HandlerThread:22041 [system_monitor.py:probe():210] {'os': 'Linux-5.15.0-97-generic-x86_64-with-glibc2.31', 'python': '3.11.4', 'heartbeatAt': '2024-03-11T16:12:03.118458', 'startedAt': '2024-03-11T16:12:02.484327', 'docker': None, 'cuda': None, 'args': ('--train',), 'state': 'running', 'program': '/home/christina/Documents/climsim_ds/main.py', 'codePath': 'main.py', 'git': {'remote': 'https://github.com/christina-winkler/climsim_ds.git', 'commit': '80bdce12362b3efe67f17d1eedebe7169d321ac7'}, 'email': 'ce.winkler@tum.de', 'root': '/home/christina/Documents/climsim_ds', 'host': 'hades', 'username': 'christina', 'executable': '/home/christina/anaconda3/envs/stflow/bin/python', 'cpu_count': 6, 'cpu_count_logical': 12, 'cpu_freq': {'current': 2.610083333333334, 'min': 800.0, 'max': 5000.0}, 'cpu_freq_per_core': [{'current': 2.6, 'min': 800.0, 'max': 5000.0}, {'current': 2.6, 'min': 800.0, 'max': 5000.0}, {'current': 2.721, 'min': 800.0, 'max': 5000.0}, {'current': 2.6, 'min': 800.0, 'max': 5000.0}, {'current': 2.6, 'min': 800.0, 'max': 5000.0}, {'current': 2.6, 'min': 800.0, 'max': 5000.0}, {'current': 2.6, 'min': 800.0, 'max': 5000.0}, {'current': 2.6, 'min': 800.0, 'max': 5000.0}, {'current': 2.6, 'min': 800.0, 'max': 5000.0}, {'current': 2.6, 'min': 800.0, 'max': 5000.0}, {'current': 2.6, 'min': 800.0, 'max': 5000.0}, {'current': 2.6, 'min': 800.0, 'max': 5000.0}], 'disk': {'total': 36.37065505981445, 'used': 32.57847595214844}, 'gpu': 'NVIDIA GeForce GTX 1650 Ti', 'gpu_count': 1, 'gpu_devices': [{'name': 'NVIDIA GeForce GTX 1650 Ti', 'memory_total': 4104323072}], 'memory': {'total': 15.241813659667969}}
+2024-03-11 17:12:03,124 INFO    HandlerThread:22041 [system_monitor.py:probe():211] Finished collecting system info
+2024-03-11 17:12:03,124 INFO    HandlerThread:22041 [system_monitor.py:probe():214] Publishing system info
+2024-03-11 17:12:03,124 DEBUG   HandlerThread:22041 [system_info.py:_save_pip():51] Saving list of pip packages installed into the current environment
+2024-03-11 17:12:03,125 DEBUG   HandlerThread:22041 [system_info.py:_save_pip():67] Saving pip packages done
+2024-03-11 17:12:03,125 DEBUG   HandlerThread:22041 [system_info.py:_save_conda():74] Saving list of conda packages installed into the current environment
+2024-03-11 17:12:04,021 INFO    Thread-12 :22041 [dir_watcher.py:_on_file_created():272] file/dir created: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/requirements.txt
+2024-03-11 17:12:04,022 INFO    Thread-12 :22041 [dir_watcher.py:_on_file_created():272] file/dir created: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/conda-environment.yaml
+2024-03-11 17:12:04,022 INFO    Thread-12 :22041 [dir_watcher.py:_on_file_created():272] file/dir created: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/wandb-summary.json
+2024-03-11 17:12:05,103 ERROR   gpu       :22041 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2024-03-11 17:12:07,105 ERROR   gpu       :22041 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2024-03-11 17:12:09,107 ERROR   gpu       :22041 [interfaces.py:monitor():144] Failed to sample metric: Not Supported
+2024-03-11 17:12:09,723 DEBUG   HandlerThread:22041 [system_info.py:_save_conda():86] Saving conda packages done
+2024-03-11 17:12:09,723 INFO    HandlerThread:22041 [system_monitor.py:probe():216] Finished publishing system info
+2024-03-11 17:12:09,726 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: status_report
+2024-03-11 17:12:09,726 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: keepalive
+2024-03-11 17:12:09,727 DEBUG   SenderThread:22041 [sender.py:send():369] send: files
+2024-03-11 17:12:09,727 INFO    SenderThread:22041 [sender.py:_save_file():1354] saving file wandb-metadata.json with policy now
+2024-03-11 17:12:09,730 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: stop_status
+2024-03-11 17:12:09,730 DEBUG   SenderThread:22041 [sender.py:send():369] send: telemetry
+2024-03-11 17:12:09,730 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: stop_status
+2024-03-11 17:12:10,022 INFO    Thread-12 :22041 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/conda-environment.yaml
+2024-03-11 17:12:10,022 INFO    Thread-12 :22041 [dir_watcher.py:_on_file_created():272] file/dir created: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/wandb-metadata.json
+2024-03-11 17:12:10,022 INFO    Thread-12 :22041 [dir_watcher.py:_on_file_created():272] file/dir created: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/output.log
+2024-03-11 17:12:10,266 INFO    wandb-upload_0:22041 [upload_job.py:push():133] Uploaded file /tmp/tmpo88fw5u9wandb/y9bx1ydu-wandb-metadata.json
+2024-03-11 17:12:10,504 DEBUG   SenderThread:22041 [sender.py:send():369] send: exit
+2024-03-11 17:12:10,504 INFO    SenderThread:22041 [sender.py:send_exit():574] handling exit code: 1
+2024-03-11 17:12:10,504 INFO    SenderThread:22041 [sender.py:send_exit():576] handling runtime: 7
+2024-03-11 17:12:10,506 INFO    SenderThread:22041 [sender.py:_save_file():1354] saving file wandb-summary.json with policy end
+2024-03-11 17:12:10,506 INFO    SenderThread:22041 [sender.py:send_exit():582] send defer
+2024-03-11 17:12:10,506 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:10,506 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 0
+2024-03-11 17:12:10,506 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:10,506 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 0
+2024-03-11 17:12:10,506 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 1
+2024-03-11 17:12:10,506 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:10,506 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 1
+2024-03-11 17:12:10,506 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:10,506 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 1
+2024-03-11 17:12:10,506 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 2
+2024-03-11 17:12:10,507 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:10,507 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 2
+2024-03-11 17:12:10,507 INFO    HandlerThread:22041 [system_monitor.py:finish():190] Stopping system monitor
+2024-03-11 17:12:10,507 INFO    HandlerThread:22041 [interfaces.py:finish():202] Joined cpu monitor
+2024-03-11 17:12:10,507 DEBUG   SystemMonitor:22041 [system_monitor.py:_start():159] Starting system metrics aggregation loop
+2024-03-11 17:12:10,507 DEBUG   SystemMonitor:22041 [system_monitor.py:_start():166] Finished system metrics aggregation loop
+2024-03-11 17:12:10,507 DEBUG   SystemMonitor:22041 [system_monitor.py:_start():170] Publishing last batch of metrics
+2024-03-11 17:12:10,508 INFO    HandlerThread:22041 [interfaces.py:finish():202] Joined disk monitor
+2024-03-11 17:12:10,541 INFO    HandlerThread:22041 [interfaces.py:finish():202] Joined gpu monitor
+2024-03-11 17:12:10,541 INFO    HandlerThread:22041 [interfaces.py:finish():202] Joined memory monitor
+2024-03-11 17:12:10,541 INFO    HandlerThread:22041 [interfaces.py:finish():202] Joined network monitor
+2024-03-11 17:12:10,541 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:10,541 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 2
+2024-03-11 17:12:10,541 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 3
+2024-03-11 17:12:10,541 DEBUG   SenderThread:22041 [sender.py:send():369] send: stats
+2024-03-11 17:12:10,542 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:10,542 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 3
+2024-03-11 17:12:10,542 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:10,542 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 3
+2024-03-11 17:12:10,542 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 4
+2024-03-11 17:12:10,542 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:10,542 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 4
+2024-03-11 17:12:10,542 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:10,542 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 4
+2024-03-11 17:12:10,542 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 5
+2024-03-11 17:12:10,543 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:10,543 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 5
+2024-03-11 17:12:10,543 DEBUG   SenderThread:22041 [sender.py:send():369] send: summary
+2024-03-11 17:12:10,543 INFO    SenderThread:22041 [sender.py:_save_file():1354] saving file wandb-summary.json with policy end
+2024-03-11 17:12:10,543 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:10,543 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 5
+2024-03-11 17:12:10,543 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 6
+2024-03-11 17:12:10,543 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:10,543 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 6
+2024-03-11 17:12:10,544 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:10,544 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 6
+2024-03-11 17:12:10,546 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: status_report
+2024-03-11 17:12:10,735 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 7
+2024-03-11 17:12:10,735 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:10,735 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 7
+2024-03-11 17:12:10,736 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:10,736 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 7
+2024-03-11 17:12:11,023 INFO    Thread-12 :22041 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/config.yaml
+2024-03-11 17:12:11,023 INFO    Thread-12 :22041 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/wandb-summary.json
+2024-03-11 17:12:11,492 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: poll_exit
+2024-03-11 17:12:12,023 INFO    Thread-12 :22041 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/output.log
+2024-03-11 17:12:12,460 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 8
+2024-03-11 17:12:12,460 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: poll_exit
+2024-03-11 17:12:12,461 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:12,461 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 8
+2024-03-11 17:12:12,462 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:12,462 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 8
+2024-03-11 17:12:12,462 INFO    SenderThread:22041 [job_builder.py:build():232] Attempting to build job artifact
+2024-03-11 17:12:12,462 INFO    SenderThread:22041 [job_builder.py:build():256] is repo sourced job
+2024-03-11 17:12:12,467 INFO    SenderThread:22041 [job_builder.py:build():297] adding wandb-job metadata file
+2024-03-11 17:12:12,481 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 9
+2024-03-11 17:12:12,481 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:12,481 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 9
+2024-03-11 17:12:12,482 DEBUG   SenderThread:22041 [sender.py:send():369] send: artifact
+2024-03-11 17:12:12,493 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: poll_exit
+2024-03-11 17:12:13,024 INFO    Thread-12 :22041 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/output.log
+2024-03-11 17:12:13,543 INFO    SenderThread:22041 [sender.py:send_artifact():1450] sent artifact job-https___github.com_christina-winkler_climsim_ds.git_main.py - {'id': 'QXJ0aWZhY3Q6NzUxNjY4NDYx', 'digest': 'f723ee4fe90828361089d712e1fc7096', 'state': 'COMMITTED', 'aliases': [{'artifactCollectionName': 'job-https___github.com_christina-winkler_climsim_ds.git_main.py', 'alias': 'latest'}, {'artifactCollectionName': 'job-https___github.com_christina-winkler_climsim_ds.git_main.py', 'alias': 'v0'}], 'artifactSequence': {'id': 'QXJ0aWZhY3RDb2xsZWN0aW9uOjE0NzczNjc2Ng==', 'latestArtifact': {'id': 'QXJ0aWZhY3Q6NzUxNjY4NDYx', 'versionIndex': 0}}, 'version': 'v0'}
+2024-03-11 17:12:13,544 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:13,544 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 9
+2024-03-11 17:12:13,544 INFO    SenderThread:22041 [dir_watcher.py:finish():359] shutting down directory watcher
+2024-03-11 17:12:14,025 INFO    SenderThread:22041 [dir_watcher.py:finish():389] scan: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files
+2024-03-11 17:12:14,026 INFO    SenderThread:22041 [dir_watcher.py:finish():403] scan save: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/requirements.txt requirements.txt
+2024-03-11 17:12:14,036 INFO    SenderThread:22041 [dir_watcher.py:finish():403] scan save: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/wandb-metadata.json wandb-metadata.json
+2024-03-11 17:12:14,036 INFO    SenderThread:22041 [dir_watcher.py:finish():403] scan save: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/output.log output.log
+2024-03-11 17:12:14,042 INFO    SenderThread:22041 [dir_watcher.py:finish():403] scan save: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/wandb-summary.json wandb-summary.json
+2024-03-11 17:12:14,042 INFO    SenderThread:22041 [dir_watcher.py:finish():403] scan save: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/conda-environment.yaml conda-environment.yaml
+2024-03-11 17:12:14,043 INFO    SenderThread:22041 [dir_watcher.py:finish():403] scan save: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/config.yaml config.yaml
+2024-03-11 17:12:14,050 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 10
+2024-03-11 17:12:14,050 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: poll_exit
+2024-03-11 17:12:14,051 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:14,051 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 10
+2024-03-11 17:12:14,057 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:14,057 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 10
+2024-03-11 17:12:14,057 INFO    SenderThread:22041 [file_pusher.py:finish():159] shutting down file pusher
+2024-03-11 17:12:14,471 INFO    wandb-upload_2:22041 [upload_job.py:push():133] Uploaded file /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/wandb-summary.json
+2024-03-11 17:12:14,553 INFO    wandb-upload_0:22041 [upload_job.py:push():133] Uploaded file /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/requirements.txt
+2024-03-11 17:12:14,555 INFO    wandb-upload_1:22041 [upload_job.py:push():133] Uploaded file /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/output.log
+2024-03-11 17:12:14,563 INFO    wandb-upload_4:22041 [upload_job.py:push():133] Uploaded file /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/config.yaml
+2024-03-11 17:12:14,572 INFO    wandb-upload_3:22041 [upload_job.py:push():133] Uploaded file /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/files/conda-environment.yaml
+2024-03-11 17:12:14,772 INFO    Thread-11 (_thread_body):22041 [sender.py:transition_state():602] send defer: 11
+2024-03-11 17:12:14,773 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:14,773 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 11
+2024-03-11 17:12:14,774 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:14,774 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 11
+2024-03-11 17:12:14,775 INFO    SenderThread:22041 [file_pusher.py:join():164] waiting for file pusher
+2024-03-11 17:12:14,775 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 12
+2024-03-11 17:12:14,775 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:14,775 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 12
+2024-03-11 17:12:14,776 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:14,776 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 12
+2024-03-11 17:12:14,977 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 13
+2024-03-11 17:12:14,978 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:14,978 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 13
+2024-03-11 17:12:14,979 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:14,979 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 13
+2024-03-11 17:12:14,979 INFO    SenderThread:22041 [sender.py:transition_state():602] send defer: 14
+2024-03-11 17:12:14,980 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: defer
+2024-03-11 17:12:14,980 INFO    HandlerThread:22041 [handler.py:handle_request_defer():170] handle defer: 14
+2024-03-11 17:12:14,981 DEBUG   SenderThread:22041 [sender.py:send():369] send: final
+2024-03-11 17:12:14,981 DEBUG   SenderThread:22041 [sender.py:send():369] send: footer
+2024-03-11 17:12:14,981 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: defer
+2024-03-11 17:12:14,982 INFO    SenderThread:22041 [sender.py:send_request_defer():598] handle sender defer: 14
+2024-03-11 17:12:14,983 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: poll_exit
+2024-03-11 17:12:14,984 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: poll_exit
+2024-03-11 17:12:14,985 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: server_info
+2024-03-11 17:12:14,986 DEBUG   SenderThread:22041 [sender.py:send_request():396] send_request: server_info
+2024-03-11 17:12:14,990 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: get_summary
+2024-03-11 17:12:14,991 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: sampled_history
+2024-03-11 17:12:15,184 DEBUG   HandlerThread:22041 [handler.py:handle_request():144] handle_request: shutdown
+2024-03-11 17:12:15,184 INFO    HandlerThread:22041 [handler.py:finish():854] shutting down handler
+2024-03-11 17:12:15,986 INFO    WriterThread:22041 [datastore.py:close():298] close: /home/christina/Documents/climsim_ds/wandb/run-20240311_171202-dmri2wp4/run-dmri2wp4.wandb
+2024-03-11 17:12:16,184 INFO    SenderThread:22041 [sender.py:finish():1526] shutting down sender
+2024-03-11 17:12:16,184 INFO    SenderThread:22041 [file_pusher.py:finish():159] shutting down file pusher
+2024-03-11 17:12:16,184 INFO    SenderThread:22041 [file_pusher.py:join():164] waiting for file pusher

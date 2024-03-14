@@ -1,0 +1,94 @@
+Nr of Trainable Params on cuda:   99009
+> /home/christina/Documents/climsim_ds/models/architectures/conv_lstm.py(71)forward()
+-> h,c = self.convLSTMcell(x[:,:,time_step],(h,c))
+  0%|                                                                                                                         | 0/18627 [00:00<?, ?it/s]
+*** RuntimeError: Given groups=1, weight of size [32, 2, 3, 3, 3], expected input[1, 16, 2, 32, 64] to have 2 channels, but got 16 channels instead
+torch.Size([16, 1, 32, 64])
+*** No help for '.shape'
+torch.Size([16, 1, 32, 64])
+torch.Size([16, 1, 32, 64])
+torch.Size([16, 1, 2, 32, 64])
+tensor([[[[-0.8810, -0.8810, -0.8803,  ..., -0.8841, -0.8829, -0.8816],
+          [-0.8294, -0.8218, -0.8148,  ..., -0.8383, -0.8377, -0.8345],
+          [-0.7861, -0.7581, -0.7333,  ..., -0.8364, -0.8294, -0.8141],
+          ...,
+          [-0.3533, -0.3565, -0.3533,  ..., -0.3202, -0.3329, -0.3450],
+          [-0.3183, -0.3272, -0.3367,  ..., -0.2954, -0.3030, -0.3106],
+          [-0.4010, -0.4029, -0.4055,  ..., -0.3978, -0.3978, -0.3991]]],
+        [[[-0.8549, -0.8555, -0.8566,  ..., -0.8532, -0.8538, -0.8538],
+          [-0.8672, -0.8773, -0.8885,  ..., -0.8515, -0.8538, -0.8594],
+          [-0.8964, -0.8980, -0.8958,  ..., -0.8106, -0.8420, -0.8779],
+          ...,
+          [-0.4146, -0.4314, -0.4409,  ..., -0.3569, -0.3754, -0.3944],
+          [-0.3798, -0.3927, -0.4045,  ..., -0.3451, -0.3552, -0.3669],
+          [-0.3877, -0.3910, -0.3944,  ..., -0.3810, -0.3826, -0.3849]]],
+        [[[-0.7401, -0.7422, -0.7436,  ..., -0.7352, -0.7366, -0.7380],
+          [-0.8228, -0.8242, -0.8249,  ..., -0.8096, -0.8158, -0.8200],
+          [-0.8756, -0.8694, -0.8721,  ..., -0.8874, -0.8867, -0.8839],
+          ...,
+          [-0.6164, -0.6428, -0.6796,  ..., -0.5705, -0.5817, -0.5983],
+          [-0.6678, -0.6901, -0.7151,  ..., -0.6185, -0.6324, -0.6491],
+          [-0.7394, -0.7477, -0.7554,  ..., -0.7144, -0.7234, -0.7318]]],
+        ...,
+        [[[-0.9994, -0.9988, -0.9971,  ..., -0.9988, -0.9994, -1.0000],
+          [-0.9431, -0.9302, -0.9209,  ..., -0.9871, -0.9754, -0.9590],
+          [-0.7972, -0.8019, -0.8101,  ..., -0.8036, -0.7995, -0.7960],
+          ...,
+          [-0.3834, -0.3763, -0.3693,  ..., -0.4109, -0.4074, -0.3951],
+          [-0.3529, -0.3429, -0.3300,  ..., -0.3746, -0.3699, -0.3623],
+          [-0.3189, -0.3177, -0.3165,  ..., -0.3224, -0.3212, -0.3200]]],
+        [[[-0.8704, -0.8649, -0.8593,  ..., -0.8839, -0.8796, -0.8753],
+          [-0.8323, -0.8231, -0.8182,  ..., -0.8913, -0.8667, -0.8464],
+          [-0.7598, -0.7623, -0.7635,  ..., -0.7635, -0.7592, -0.7586],
+          ...,
+          [-0.4386, -0.4251, -0.4066,  ..., -0.4539, -0.4509, -0.4472],
+          [-0.4754, -0.4595, -0.4453,  ..., -0.5215, -0.5086, -0.4920],
+          [-0.5829, -0.5768, -0.5700,  ..., -0.5964, -0.5934, -0.5885]]],
+        [[[-0.7792, -0.7814, -0.7829,  ..., -0.7719, -0.7741, -0.7770],
+          [-0.8962, -0.8991, -0.8977,  ..., -0.8428, -0.8692, -0.8867],
+          [-0.9196, -0.9167, -0.9152,  ..., -0.8977, -0.9189, -0.9218],
+          ...,
+          [-0.4532, -0.4474, -0.4437,  ..., -0.4730, -0.4693, -0.4620],
+          [-0.4788, -0.4773, -0.4795,  ..., -0.5015, -0.4912, -0.4839],
+          [-0.5168, -0.5146, -0.5124,  ..., -0.5285, -0.5241, -0.5205]]]],
+       device='cuda:0')
+torch.Size([16, 1, 32, 64])
+*** RuntimeError: Given groups=1, weight of size [32, 2, 3, 3, 3], expected input[1, 16, 2, 32, 64] to have 2 channels, but got 16 channels instead
+torch.Size([16, 1, 32, 64])
+  0%|                                                                                                                         | 0/18627 [06:59<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 88, in trainer
+    out = model.forward(x=x_past)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm.py", line 71, in forward
+    output[:,:,time_step] = h
+          ^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 90, in trace_dispatch
+    return self.dispatch_line(frame)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 115, in dispatch_line
+    if self.quitting: raise BdbQuit
+                      ^^^^^^^^^^^^^
+bdb.BdbQuit
+Traceback (most recent call last):
+  File "/home/christina/Documents/climsim_ds/main.py", line 354, in <module>
+    main(args)
+  File "/home/christina/Documents/climsim_ds/main.py", line 153, in main
+    trainer_stdiff.trainer(args=args, train_loader=train_loader,
+  File "/home/christina/Documents/climsim_ds/optimization/trainer_stdiff.py", line 88, in trainer
+    out = model.forward(x=x_past)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/Documents/climsim_ds/models/architectures/conv_lstm.py", line 71, in forward
+    output[:,:,time_step] = h
+          ^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 90, in trace_dispatch
+    return self.dispatch_line(frame)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/christina/anaconda3/envs/stflow/lib/python3.11/bdb.py", line 115, in dispatch_line
+    if self.quitting: raise BdbQuit
+                      ^^^^^^^^^^^^^
+bdb.BdbQuit
