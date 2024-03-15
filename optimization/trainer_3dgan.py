@@ -32,106 +32,6 @@ np.random.seed(0)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-class ScheduleResolution():
-    def __init__(self, args, len_dset, fadein):
-        self.config = args
-        self.resl = 2
-        self.trns_tick = 10
-        self.stab_tick = 10
-        self.batch_size = args.bsz
-        self.len_dset = len_dset
-        self.fadein = {'G':None, 'D':None} # TODO adapt
-        self.nsamples = 0
-        self.max_resl = 128
-        self.phase = 'init'
-
-    def schedule_resl(self):
-
-        # trns and stab if resl > 2
-        if floor(self.resl)!=2:
-            self.trns_tick = self.config.trns_tick
-            self.stab_tick = self.config.stab_tick
-
-        # alpha and delta parameters for smooth fade-in (resl-interpolation)
-        delta = 1.0/(self.trns_tick+self.stab_tick)
-        d_alpha = 1.0*self.batch_size/self.trns_tick/self.len_dset
-
-        # update alpha if FadeInLayer exist
-        if self.fadein['D'] is not None:
-            if self.resl%1.0 < (self.trns_tick)*delta:
-                self.fadein['G'][0].update_alpha(d_alpha)
-                self.fadein['G'][1].update_alpha(d_alpha)
-                self.fadein['D'].update_alpha(d_alpha)
-                self.complete = self.fadein['D'].alpha*100
-                self.phase = 'trns'
-            elif self.resl%1.0 >= (self.trns_tick)*delta and self.phase != 'final':
-                self.phase = 'stab'
-
-        # increase resl linearly every tick
-        prev_nsamples = self.nsamples
-        self.nsamples = self.nsamples + self.batch_size
-        if (self.nsamples%self.len_dset) < (prev_nsamples%self.len_dset):
-            self.nsamples = 0
-
-            prev_resl = floor(self.resl)
-            self.resl = self.resl + delta
-            self.resl = max(2, min(10.5, self.resl))        # clamping, range: 4 ~ 1024
-
-            # flush network.
-            if self.flag_flush and self.resl%1.0 >= (self.trns_tick)*delta and prev_resl!=2:
-                if self.fadein['D'] is not None:
-                    self.fadein['G'][0].update_alpha(d_alpha)
-                    self.fadein['G'][1].update_alpha(d_alpha)
-                    self.fadein['D'].update_alpha(d_alpha)
-                    self.complete = self.fadein['D'].alpha*100
-                self.flag_flush = False
-                self.G.module.flush_network()   # flush G
-                self.D.module.flush_network()   # flush and,
-                self.fadein['G'] = None
-                self.fadein['D'] = None
-                self.complete = 0.0
-                if floor(self.resl) < self.max_resl and self.phase != 'final':
-                    self.phase = 'stab'
-                self.print_model_structure()
-
-            # grow network.
-            if floor(self.resl) != prev_resl and floor(self.resl)<self.max_resl+1:
-                self.lr = self.lr * float(self.config.lr_decay)
-                self.G.module.grow_network(floor(self.resl))
-                self.D.module.grow_network(floor(self.resl))
-                self.renew_everything()
-                self.fadein['G'] = [self.G.module.model.fadein_block_decode, self.G.module.model.fadein_block_encode]
-                self.fadein['D'] = self.D.module.model.fadein_block
-                self.flag_flush = True
-                self.print_model_structure()
-
-            if floor(self.resl) >= self.max_resl and self.resl%1.0 >= self.trns_tick*delta:
-                self.phase = 'final'
-                self.resl = self.max_resl+self.trns_tick*delta
-
-def feed_interpolated_input(x, resl, max_resl, phase='Gtrns', use_cuda=True):
-
-        # interpolate input to match network resolution
-        if phase == 'Gtrns' and floor(resl)>2 and floor(resl)<=max_resl:
-            alpha = self.complete/100.0
-            transform = transforms.Compose( [   transforms.ToPILImage(),
-                                                transforms.Resize(size=int(pow(2,floor(resl)-1)), interpolation=0),      # 0: nearest
-                                                transforms.Resize(size=int(pow(2,floor(resl))), interpolation=0),      # 0: nearest
-                                                transforms.ToTensor(),
-                                            ] )
-
-            x_low = x.clone().add(1).mul(0.5)
-            for i in range(x_low.size(0)):
-                for j in range(x_low.size(2)):
-                    x_low[i,:,j,:,:] = transform(x_low[i,:,j,:,:]).mul(2).add(-1)
-            x = torch.add(x.mul(alpha), x_low.mul(1-alpha))
-
-        if use_cuda:
-            return x.cuda()
-        else:
-            return x
-
-
 def trainer(args, train_loader, valid_loader, generator, discriminator,
             device='cpu', needs_init=True, ckpt=None):
 
@@ -147,8 +47,6 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
     prev_loss_epoch = np.inf
     logging_step = 0
     step = 0
-    schedule_resl = ScheduleResolution(args, len(train_loader), {'G': generator, 'D': discriminator})
-
     criterion = torch.nn.BCELoss()
     optimizerG = optim.Adam(generator.parameters(), lr=args.lr, amsgrad=True)
     optimizerD = optim.Adam(discriminator.parameters(), lr=args.lr, amsgrad=True)
@@ -188,10 +86,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             x = item[0].to(device)
 
             # split time series into lags and prediction window
-            # x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
-
-            # schedule resolution
-            schedule_resl.schedule_resl()
+            x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
 
             generator.train()
             discriminator.train()
@@ -199,11 +94,8 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             optimizerG.zero_grad()
             optimizerD.zero_grad()
 
-            # interpolate discriminator real output
-            data = feed_interpolated_input(x,resl=schedule_resl.resl,max_resl=schedule_resl.max_resl).to(args.device) # whole sequence
-            x_past, x_for = data[:,:, :2,...], data[:,:, 2:,...]
-
             # generate future sequence
+            # import pdb; pdb.set_trace()
             noise = torch.randn_like(x_past)[:,:,0,...]
             gen_x_for = generator(x_past, noise) # takes in sequence of past frames to predict sequence of future frames
 

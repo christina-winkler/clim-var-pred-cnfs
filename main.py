@@ -15,10 +15,10 @@ import time
 import os
 
 # Models
-from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan, ddpm_conditional, conv_lstm_diff, diff_modules, 3dgan
+from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan, ddpm_conditional, conv_lstm_diff, diff_modules, threedgan
 
 # Optimization
-from optimization import trainer_stflow, trainer_stflow_ds, trainer_stdiff, trainer_stdiff_ds, trainer_unet3d, trainer_convlstm, trainer_futgan, trainer_spategan
+from optimization import trainer_stflow, trainer_stflow_ds, trainer_stdiff, trainer_stdiff_ds, trainer_unet3d, trainer_convlstm, trainer_futgan, trainer_spategan, trainer_3dgan
 
 import pdb
 from tensorboardX import SummaryWriter
@@ -53,8 +53,8 @@ def main(args):
     # Build name of current model
     if args.modelname is None:
         args.modelname = "{}_{}_bsz{}_K{}_L{}_lr{:.4f}_s{}".format(
-            args.modeltype, args.trainset, args.bsz, args.Kst, args.Lst, args.lr, args.s
-        )
+            args.modeltype, args.trainset, args.bsz, args.Kst,
+            args.Lst, args.lr, args.s)
 
     if args.train:
         # load data
@@ -174,14 +174,14 @@ def main(args):
     elif args.modeltype == '3dgan':
         height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
 
-        generator = 3dgan.net_G(config=args).to(args.device)
-        discriminator = 3dgan.net_D(config=args).to(args.device)
+        generator = threedgan.net_G(cube_len=2).to(args.device)
+        discriminator = threedgan.net_D(cube_len=1).to(args.device)
 
-        print('Training FutureGAN ...')
-        trainer_futgan.trainer(args=args, train_loader=train_loader,
-                               valid_loader=valid_loader, generator=generator,
-                               discriminator=discriminator,
-                               device=args.device)
+        print('Training 3DGAN ...')
+        trainer_3dgan.trainer(args=args, train_loader=train_loader,
+                           valid_loader=valid_loader, generator=generator,
+                           discriminator=discriminator,
+                           device=args.device)
 
     elif args.modeltype == 'spategan':
         args.height, args.width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
@@ -233,10 +233,6 @@ def main(args):
                                  device=args.device)
 
 
-<<<<<<< HEAD
-
-=======
->>>>>>> f92363ffaf1d4c80c31cf59322dde8afd66401b9
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
