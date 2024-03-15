@@ -1,96 +1,68 @@
-# implementation from: https://arxiv.org/pdf/1610.07584.pdf
 import torch
-# import params
+import torch.nn as nn
+import torch.nn.functional as F
 
-'''
+"""
+Implements model class of our 3D GAN model.
+"""
 
-model.py
-
-Define our GAN model
-
-The cube_len is 32x32x32, and the maximum number of feature map is 256,
-so the results may be inconsistent with the paper
-
-'''
-
-class net_G(torch.nn.Module):
-    def __init__(self, cube_len):
-        super(net_G, self).__init__()
-        self.cube_len = cube_len# params.cube_len
-        self.bias =  False #params.bias
+class Generator(torch.nn.Module):
+    def __init__(self, in_c, out_c, height, width):
+        super(Generator, self).__init__()
+        self.bias =  False # params.bias
         self.z_dim = 200 # params.z_dim
         self.f_dim = 64
 
         padd = (1, 1, 1)
-        # if self.cube_len == 32:
-        #     padd = (1,1,1)
-
-        self.layer1 = self.conv_layer(3, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        self.layer2 = self.conv_layer(self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        self.layer3 = self.conv_layer(self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        self.layer4 = self.conv_layer(self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        # note +1 as we only concatenate one noise layer
+        self.layer1 = self.conv_layer(in_c+1, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.layer2 = self.conv_layer(self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.layer3 = self.conv_layer(2*self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.layer4 = self.conv_layer(2*self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
         self.layer5 = self.conv_layer(self.f_dim, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-
-        # self.layer5 = torch.nn.Sequential(
-        #     torch.nn.ConvTranspose3d(self.f_dim, 1, kernel_size=4, stride=1, bias=self.bias, padding=(0, 0, 0)),
-        #     torch.nn.Sigmoid()
-        #     # torch.nn.Tanh()
-        # )
 
     def conv_layer(self, input_dim, output_dim, kernel_size=3, stride=2, padding=(0,0,0), bias=False):
         layer = torch.nn.Sequential(
             torch.nn.ConvTranspose3d(input_dim, output_dim, kernel_size=kernel_size, stride=stride, bias=bias, padding=padding),
             torch.nn.BatchNorm3d(output_dim),
-            torch.nn.ReLU(True)
-            # torch.nn.LeakyReLU(self.leak_value, True)
+            # torch.nn.ReLU(True)
+            torch.nn.LeakyReLU(0.4, True)
         )
         return layer
 
     def forward(self, x, noise):
         out = torch.cat((x,noise.unsqueeze(1)),2).permute(0,2,1,3,4)
-        # out = x.view(x.size(0), -1, 1, 1, 1)
-        # print(out.size())  # torch.Size([32, 200, 1, 1, 1])
         out = self.layer1(out)
-        # print(out.size())  # torch.Size([32, 256, 2, 2, 2])
         out = self.layer2(out)
-        # print(out.size())  # torch.Size([32, 128, 4, 4, 4])
         out = self.layer3(out)
-        # print(out.size())  # torch.Size([32, 64, 8, 8, 8])
         out = self.layer4(out)
-        # print(out.size())  # torch.Size([32, 32, 16, 16, 16])note
         out = self.layer5(out)
-        # print(out.size())  # torch.Size([32, 1, 32, 32, 32])
-        # out = torch.squeeze(out)
         return out
 
 
-class net_D(torch.nn.Module):
-    def __init__(self, cube_len):
-        super(net_D, self).__init__()
-        # self.args = args
-        self.cube_len = cube_len
+class Discriminator(torch.nn.Module):
+    def __init__(self, in_c, out_c, height, width):
+        super(Discriminator, self).__init__()
+
         self.leak_value = 0.2
         self.bias = False
+        self.height = height
+        self.width = width
 
         padd = (1,1,1)
-        if self.cube_len == 32:
-            padd = (1,1,1)
-
         self.f_dim = 32
 
         self.layer1 = self.conv_layer(1, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
-        self.layer2 = self.conv_layer(self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
-        self.layer3 = self.conv_layer(self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
-        self.layer4 = self.conv_layer(self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
+        self.layer2 = self.conv_layer(self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
+        self.attn1 = SelfAttention(2*self.f_dim, height, width)
+        self.layer3 = self.conv_layer(2*self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
+        self.attn2 = SelfAttention(self.f_dim, height, width)
+        self.layer4 = self.conv_layer(self.f_dim, 1, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
+
         # self.layer5 = self.conv_layer(self.f_dim, 1, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
 
-        # self.layer5 = torch.nn.Sequential(
-        #     torch.nn.Conv3d(self.f_dim*8, 1, kernel_size=4, stride=2, bias=self.bias, padding=padd),
-        #     torch.nn.Sigmoid()
-        # )
-
         self.layer5 = torch.nn.Sequential(
-            torch.nn.Linear(65536, 1),
+            torch.nn.Linear(height * width, 1),
             torch.nn.Sigmoid()
         )
 
@@ -98,25 +70,42 @@ class net_D(torch.nn.Module):
         layer = torch.nn.Sequential(
             torch.nn.Conv3d(input_dim, output_dim, kernel_size=kernel_size, stride=stride, bias=bias, padding=padding),
             torch.nn.BatchNorm3d(output_dim),
-            torch.nn.LeakyReLU(self.leak_value, inplace=True)
+            # torch.nn.LeakyReLU(self.leak_value, inplace=True)
+            torch.nn.ReLU(True)
         )
         return layer
 
     def forward(self, x):
-        # out = torch.unsqueeze(x, dim=1)
-        # out = x.view(-1, 1, self.cube_len, self.cube_len, self.cube_len)
-        # print(out.size()) # torch.Size([32, 1, 32, 32, 32])
         out = self.layer1(x)
-        # print(out.size())  # torch.Size([32, 32, 16, 16, 16])
         out = self.layer2(out)
-        # print(out.size())  # torch.Size([32, 64, 8, 8, 8])
+        out = self.attn1(out)
         out = self.layer3(out)
-        # print(out.size())  # torch.Size([32, 128, 4, 4, 4])
+        out = self.attn2(out)
         out = self.layer4(out)
-        # print(out.size())  # torch.Size([32, 256, 2, 2, 2])
-        out = out.view(x.size(0), 65536)
-        # print (out.size())
+        out = out.reshape(x.size(0),-1)
         out = self.layer5(out)
-        # print(out.size())  # torch.Size([32, 1, 1, 1, 1])
-        # out = torch.squeeze(out)
         return out
+
+class SelfAttention(nn.Module):
+    def __init__(self, channels, height, width):
+        super(SelfAttention, self).__init__()
+        self.channels = channels
+        self.height = height
+        self.width = width
+        self.mha = nn.MultiheadAttention(channels, 4, batch_first=True)
+        self.ln = nn.LayerNorm([channels])
+        self.ff_self = nn.Sequential(
+            nn.LayerNorm([channels]),
+            nn.Linear(channels, channels),
+            nn.GELU(),
+            nn.Linear(channels, channels),
+        )
+
+    def forward(self, x):
+        bsz = x.shape[0]
+        x = x.view(bsz, self.channels, self.height * self.width).swapaxes(1, 2)
+        x_ln = self.ln(x)
+        attention_value, _ = self.mha(x_ln, x_ln, x_ln)
+        attention_value = attention_value + x
+        attention_value = self.ff_self(attention_value) + attention_value
+        return attention_value.swapaxes(2, 1).view(-1, self.channels, self.height, self.width).unsqueeze(2)

@@ -174,8 +174,8 @@ def main(args):
     elif args.modeltype == '3dgan':
         height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
 
-        generator = threedgan.net_G(cube_len=2).to(args.device)
-        discriminator = threedgan.net_D(cube_len=1).to(args.device)
+        generator = threedgan.Generator(in_c=args.lag_len, out_c=1, height=height, width=width).to(args.device)
+        discriminator = threedgan.Discriminator(in_c=1, out_c=1, height=height, width=width).to(args.device)
 
         print('Training 3DGAN ...')
         trainer_3dgan.trainer(args=args, train_loader=train_loader,
