@@ -57,9 +57,7 @@ class net_G(torch.nn.Module):
         out = self.layer3(out)
         # print(out.size())  # torch.Size([32, 64, 8, 8, 8])
         out = self.layer4(out)
-        # print(out.size())  # torch.Size([32, 32, 16, 16, 16])
-        import pdb; pdb.set_trace()
-
+        # print(out.size())  # torch.Size([32, 32, 16, 16, 16])note
         out = self.layer5(out)
         # print(out.size())  # torch.Size([32, 1, 32, 32, 32])
         # out = torch.squeeze(out)
@@ -74,26 +72,27 @@ class net_D(torch.nn.Module):
         self.leak_value = 0.2
         self.bias = False
 
-        padd = (0,0,0)
+        padd = (1,1,1)
         if self.cube_len == 32:
             padd = (1,1,1)
 
         self.f_dim = 32
 
-        self.layer1 = self.conv_layer(1, self.f_dim, kernel_size=4, stride=2, padding=(1,1,1), bias=self.bias)
-        self.layer2 = self.conv_layer(self.f_dim, self.f_dim*2, kernel_size=4, stride=2, padding=(1,1,1), bias=self.bias)
-        self.layer3 = self.conv_layer(self.f_dim*2, self.f_dim*4, kernel_size=4, stride=2, padding=(1,1,1), bias=self.bias)
-        self.layer4 = self.conv_layer(self.f_dim*4, self.f_dim*8, kernel_size=4, stride=2, padding=(1,1,1), bias=self.bias)
-
-        self.layer5 = torch.nn.Sequential(
-            torch.nn.Conv3d(self.f_dim*8, 1, kernel_size=4, stride=2, bias=self.bias, padding=padd),
-            torch.nn.Sigmoid()
-        )
+        self.layer1 = self.conv_layer(1, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
+        self.layer2 = self.conv_layer(self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
+        self.layer3 = self.conv_layer(self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
+        self.layer4 = self.conv_layer(self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
+        # self.layer5 = self.conv_layer(self.f_dim, 1, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
 
         # self.layer5 = torch.nn.Sequential(
-        #     torch.nn.Linear(256*2*2*2, 1),
+        #     torch.nn.Conv3d(self.f_dim*8, 1, kernel_size=4, stride=2, bias=self.bias, padding=padd),
         #     torch.nn.Sigmoid()
         # )
+
+        self.layer5 = torch.nn.Sequential(
+            torch.nn.Linear(65536, 1),
+            torch.nn.Sigmoid()
+        )
 
     def conv_layer(self, input_dim, output_dim, kernel_size=4, stride=2, padding=(1,1,1), bias=False):
         layer = torch.nn.Sequential(
@@ -105,9 +104,9 @@ class net_D(torch.nn.Module):
 
     def forward(self, x):
         # out = torch.unsqueeze(x, dim=1)
-        out = x.view(-1, 1, self.cube_len, self.cube_len, self.cube_len)
+        # out = x.view(-1, 1, self.cube_len, self.cube_len, self.cube_len)
         # print(out.size()) # torch.Size([32, 1, 32, 32, 32])
-        out = self.layer1(out)
+        out = self.layer1(x)
         # print(out.size())  # torch.Size([32, 32, 16, 16, 16])
         out = self.layer2(out)
         # print(out.size())  # torch.Size([32, 64, 8, 8, 8])
@@ -115,9 +114,9 @@ class net_D(torch.nn.Module):
         # print(out.size())  # torch.Size([32, 128, 4, 4, 4])
         out = self.layer4(out)
         # print(out.size())  # torch.Size([32, 256, 2, 2, 2])
-        # out = out.view(-1, 256*2*2*2)
+        out = out.view(x.size(0), 65536)
         # print (out.size())
         out = self.layer5(out)
         # print(out.size())  # torch.Size([32, 1, 1, 1, 1])
-        out = torch.squeeze(out)
+        # out = torch.squeeze(out)
         return out

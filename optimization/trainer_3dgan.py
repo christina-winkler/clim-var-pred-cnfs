@@ -95,7 +95,6 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             optimizerD.zero_grad()
 
             # generate future sequence
-            # import pdb; pdb.set_trace()
             noise = torch.randn_like(x_past)[:,:,0,...]
             gen_x_for = generator(x_past, noise) # takes in sequence of past frames to predict sequence of future frames
 
