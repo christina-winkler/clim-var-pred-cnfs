@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from models.architectures import unet3d
 
 """
 Implements model class of our 3D GAN model.
@@ -13,15 +14,17 @@ class Generator(torch.nn.Module):
         self.z_dim = 200 # params.z_dim
         self.f_dim = 64
 
+        self.unet3d = unet3d.UNet3D(in_channel=1)
+
         padd = (1, 1, 1)
         # note +1 as we only concatenate one noise layer
-        self.layer1 = self.conv_layer(in_c+1, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        self.layer2 = self.conv_layer(self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        self.attn1 = SelfAttention(2*self.f_dim, height, width)
-        self.layer3 = self.conv_layer(2*self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        self.layer4 = self.conv_layer(2*self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        self.attn2 = SelfAttention(self.f_dim, height, width)
-        self.layer5 = self.conv_layer(self.f_dim, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.layer1 = self.conv_layer(3, 2, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        # self.layer2 = self.conv_layer(self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        # self.attn1 = SelfAttention(2*self.f_dim, height, width)
+        # self.layer3 = self.conv_layer(2*self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        # self.layer4 = self.conv_layer(2*self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        # self.attn2 = SelfAttention(self.f_dim, height, width)
+        # self.layer5 = self.conv_layer(self.f_dim, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
 
 
     def conv_layer(self, input_dim, output_dim, kernel_size=3, stride=2, padding=(0,0,0), bias=False):
@@ -35,13 +38,16 @@ class Generator(torch.nn.Module):
 
     def forward(self, x, noise):
         out = torch.cat((x,noise.unsqueeze(1)),2).permute(0,2,1,3,4)
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.attn1(out)
-        out = self.layer3(out)
-        out = self.layer4(out)
-        out = self.attn2(out)
-        out = self.layer5(out)
+        out = self.layer1(out)#.permute(0,2,1,3,4)
+        out = self.unet3d(out)
+
+        # out = self.layer2(out)
+        # out = self.attn1(out)
+        # out = self.layer3(out)
+        # out = self.layer4(out)
+        # out = self.attn2(out)
+        # out = self.layer5(out)
+        # import pdb; pdb.set_trace()
         return out
 
 
@@ -59,9 +65,9 @@ class Discriminator(torch.nn.Module):
 
         self.layer1 = self.conv_layer(1, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
         self.layer2 = self.conv_layer(self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
-        self.attn1 = SelfAttention(2*self.f_dim, height, width)
+        # self.attn1 = SelfAttention(2*self.f_dim, height, width)
         self.layer3 = self.conv_layer(2*self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
-        self.attn2 = SelfAttention(self.f_dim, height, width)
+        # self.attn2 = SelfAttention(self.f_dim, height, width)
         self.layer4 = self.conv_layer(self.f_dim, 1, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
 
         # self.layer5 = self.conv_layer(self.f_dim, 1, kernel_size=3, stride=1, padding=(1,1,1), bias=self.bias)
@@ -83,9 +89,9 @@ class Discriminator(torch.nn.Module):
     def forward(self, x):
         out = self.layer1(x)
         out = self.layer2(out)
-        out = self.attn1(out)
+        # out = self.attn1(out)
         out = self.layer3(out)
-        out = self.attn2(out)
+        # out = self.attn2(out)
         out = self.layer4(out)
         out = out.reshape(x.size(0),-1)
         out = self.layer5(out)
