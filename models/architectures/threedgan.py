@@ -17,9 +17,12 @@ class Generator(torch.nn.Module):
         # note +1 as we only concatenate one noise layer
         self.layer1 = self.conv_layer(in_c+1, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
         self.layer2 = self.conv_layer(self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.attn1 = SelfAttention(2*self.f_dim, height, width)
         self.layer3 = self.conv_layer(2*self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
         self.layer4 = self.conv_layer(2*self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.attn2 = SelfAttention(self.f_dim, height, width)
         self.layer5 = self.conv_layer(self.f_dim, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+
 
     def conv_layer(self, input_dim, output_dim, kernel_size=3, stride=2, padding=(0,0,0), bias=False):
         layer = torch.nn.Sequential(
@@ -34,8 +37,10 @@ class Generator(torch.nn.Module):
         out = torch.cat((x,noise.unsqueeze(1)),2).permute(0,2,1,3,4)
         out = self.layer1(out)
         out = self.layer2(out)
+        out = self.attn1(out)
         out = self.layer3(out)
         out = self.layer4(out)
+        out = self.attn2(out)
         out = self.layer5(out)
         return out
 
