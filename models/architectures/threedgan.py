@@ -37,9 +37,10 @@ class Generator(torch.nn.Module):
         return layer
 
     def forward(self, x, noise):
-        out = torch.cat((x,noise.unsqueeze(1)),2).permute(0,2,1,3,4)
-        out = self.layer1(out)#.permute(0,2,1,3,4)
-        out = self.unet3d(out)
+        out = torch.cat((x, noise.unsqueeze(1).contiguous()), 2).permute(0,2,1,3,4).contiguous()
+        out1 = self.layer1(out)#.permute(0,2,1,3,4)
+        out2 = self.unet3d(out)
+        import pdb; pdb.set_trace()
 
         # out = self.layer2(out)
         # out = self.attn1(out)
