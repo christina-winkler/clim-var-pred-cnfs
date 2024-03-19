@@ -15,10 +15,10 @@ import time
 import os
 
 # Models
-from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan, ddpm_conditional, conv_lstm_diff, diff_modules
+from models.architectures import condNF, srflow, unet3d, conv_lstm_baseline, future_gan, spate_gan, ddpm_conditional, conv_lstm_diff, diff_modules, threedgan
 
 # Optimization
-from optimization import trainer_stflow, trainer_stflow_ds, trainer_stdiff, trainer_stdiff_ds, trainer_unet3d, trainer_convlstm, trainer_futgan, trainer_spategan
+from optimization import trainer_stflow, trainer_stflow_ds, trainer_stdiff, trainer_stdiff_ds, trainer_unet3d, trainer_convlstm, trainer_futgan, trainer_spategan, trainer_3dgan
 
 import pdb
 from tensorboardX import SummaryWriter
@@ -53,8 +53,8 @@ def main(args):
     # Build name of current model
     if args.modelname is None:
         args.modelname = "{}_{}_bsz{}_K{}_L{}_lr{:.4f}_s{}".format(
-            args.modeltype, args.trainset, args.bsz, args.Kst, args.Lst, args.lr, args.s
-        )
+            args.modeltype, args.trainset, args.bsz, args.Kst,
+            args.Lst, args.lr, args.s)
 
     if args.train:
         # load data
@@ -171,6 +171,18 @@ def main(args):
                                discriminator=discriminator,
                                device=args.device)
 
+    elif args.modeltype == '3dgan':
+        height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
+
+        generator = threedgan.Generator(in_c=args.lag_len, out_c=1, height=height, width=width).to(args.device)
+        discriminator = threedgan.Discriminator(in_c=1, out_c=1, height=height, width=width).to(args.device)
+
+        print('Training 3DGAN ...')
+        trainer_3dgan.trainer(args=args, train_loader=train_loader,
+                           valid_loader=valid_loader, generator=generator,
+                           discriminator=discriminator,
+                           device=args.device)
+
     elif args.modeltype == 'spategan':
         args.height, args.width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
 
@@ -220,12 +232,16 @@ def main(args):
                                  model=model.cuda(),
                                  device=args.device)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> f3c1fd32540a029713de7bb9df1e1e612a8ed2f5
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
     # train configs
-    parser.add_argument("--modeltype", type=str, default="futgan",
+    parser.add_argument("--modeltype", type=str, default="3dgan",
                         help="Specify modeltype you would like to train [flow, diff, unet3d, convLSTM, futgan, spategan].")
     parser.add_argument("--model_path", type=str, default="runs/",
                         help="Directory where models are saved.")

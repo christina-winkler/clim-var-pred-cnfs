@@ -75,7 +75,6 @@ class UNet3D(nn.Module):
         self.center_out = center_out(hidden_dims[3], hidden_dims[2])
         self.pool_center_out = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
 
-        # TODO: check the upsampling path
         self.downsample_center_out = nn.Conv3d(3, 1, kernel_size=1)
         self.dc4 = conv_block(hidden_dims[3], hidden_dims[2], hidden_dims[2])
         self.trans3 = up_conv_block(hidden_dims[2], hidden_dims[1])
