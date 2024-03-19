@@ -77,7 +77,8 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
 
     if torch.cuda.device_count() > 1 and args.train:
         print("Running on {} GPUs!".format(torch.cuda.device_count()))
-        model = torch.nn.DataParallel(model)
+        generator = torch.nn.DataParallel(generator)
+        discriminator = torch.nn.DataParallel(discriminator)
         args.parallel = True
 
     for epoch in range(args.epochs):
@@ -96,7 +97,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
 
             # generate future sequence
             noise = torch.randn_like(x_past)[:,:,0,...]
-            gen_x_for = generator(x_past, noise) # takes in sequence of past frames to predict sequence of future frames
+            gen_x_for = generator(x_past) # takes in sequence of past frames to predict sequence of future frames
 
             # distinguish between real and fake sequences
             # compute score - float
@@ -111,28 +112,28 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             # loss_d = torch.mean(score_fake) - torch.mean(score_real)
             #
             # # gradient penalty
-            # lam = 10
-            # alpha = torch.randn(args.bsz, 1)
-            # alpha = alpha.expand(args.bsz, x[:,:,2:,:,:][0].nelement()).contiguous().view(args.bsz, x.size(1), x[:,:,2:,:,:].size(2), x.size(3), x.size(4)).to(args.device)
-            # interpolates = alpha*x[:,:,2:,:,:]+((1-alpha)*gen_x_for).to(args.device)
-            # interpolates = Variable(interpolates, requires_grad=True).to(args.device)
-            # interpolates_score = discriminator(interpolates)
-            # gradients = torch.autograd.grad(outputs=interpolates_score, inputs=interpolates,
-            #                                 grad_outputs=torch.ones(interpolates_score.size()).cuda(),
-            #                                 create_graph=True, retain_graph=True, only_inputs=True)[0]
+            lam = 10
+            alpha = torch.randn(args.bsz, 1)
+            alpha = alpha.expand(args.bsz, x[:,:,2:,:,:][0].nelement()).contiguous().view(args.bsz, x.size(1), x[:,:,2:,:,:].size(2), x.size(3), x.size(4)).to(args.device)
+            interpolates = alpha*x[:,:,2:,:,:]+((1-alpha)*gen_x_for).to(args.device)
+            interpolates = Variable(interpolates, requires_grad=True).to(args.device)
+            interpolates_score = discriminator(interpolates)
+            gradients = torch.autograd.grad(outputs=interpolates_score, inputs=interpolates,
+                                            grad_outputs=torch.ones(interpolates_score.size()).cuda(),
+                                            create_graph=True, retain_graph=True, only_inputs=True)[0]
 
-            # # compute gradients
-            # gradients = gradients.view(gradients.size(0), -1)
-            # gradient_penalty = ((gradients.norm(2, dim=1)-1)**2).mean()
+            # compute gradients
+            gradients = gradients.view(gradients.size(0), -1)
+            gradient_penalty = ((gradients.norm(2, dim=1)-1)**2).mean()
             # loss_d = loss_d+lam*gradient_penalty
 
             # eps = 0.001
-            # eps_penalty = torch.mean((real_score-0)**2)
+            # eps_penalty = torch.mean((score_real-0)**2)
             # loss_d = loss_d+eps_penalty*eps
 
             real_loss = criterion(score_real, real_labels)
             fake_loss = criterion(score_fake, fake_labels)
-            loss_d = real_loss + fake_loss
+            loss_d = (real_loss + fake_loss) + lam*gradient_penalty
             loss_d.backward()
 
             # update discriminator

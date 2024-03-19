@@ -232,10 +232,6 @@ def main(args):
                                  model=model.cuda(),
                                  device=args.device)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> f3c1fd32540a029713de7bb9df1e1e612a8ed2f5
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -303,10 +299,10 @@ if __name__ == "__main__":
                         help="# of residual-in-residual blocks in LR network.")
 
     # data
-    parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
-                        help="Dataset to train the model on.")
-    # parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
+    # parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
     #                     help="Dataset to train the model on.")
+    parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
+                        help="Dataset to train the model on.")
     parser.add_argument("--trainset", type=str, default="geop",
                         help="Dataset to train the model on.")
 
