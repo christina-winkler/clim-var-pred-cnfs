@@ -20,7 +20,8 @@ class Generator(torch.nn.Module):
         # note +1 as we only concatenate one noise layer
         self.layer1 = self.conv_layer(3, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
         self.unet3d_1 = UNet3D(in_channel=1)
-        # self.layer2 = self.conv_layer(self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.relu = torch.nn.ReLU()
+        self.layer2 = self.conv_layer(2, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
         # self.attn1 = SelfAttention(2*self.f_dim, height, width)
         # self.layer3 = self.conv_layer(2*self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
         # self.layer4 = self.conv_layer(2*self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
@@ -41,6 +42,9 @@ class Generator(torch.nn.Module):
         out = torch.cat((x, noise.unsqueeze(1).contiguous()), 2).permute(0,2,1,3,4).contiguous()
         out1 = self.layer1(out)
         out2 = self.unet3d_1(out)
+        cat_out = torch.cat((out1,out2),2)
+        out = cat_out * 0.6 + x
+        out = self.layer2(out.permute(0,2,1,3,4).contiguous())
         # out = self.layer2(out)
         # out = self.attn1(out)
         # out = self.layer3(out)
@@ -48,7 +52,7 @@ class Generator(torch.nn.Module):
         # out = self.attn2(out)
         # out = self.layer5(out)
         # import pdb; pdb.set_trace()
-        return out2 * 0.4 + out1
+        return out
 
 
 class Discriminator(torch.nn.Module):
