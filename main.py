@@ -283,7 +283,7 @@ if __name__ == "__main__":
                         help="Lag length of time-series")
     parser.add_argument("--lead_len", type=int, default=1,
                         help="Lead time length of time-series")
-    parser.add_argument("--lr", type=float, default=0.0002,
+    parser.add_argument("--lr", type=float, default=0.002,
                         help="learning rate")
     parser.add_argument("--filter_size", type=int, default=512//2,
                         help="filter size NN in Affine Coupling Layer")

@@ -60,9 +60,6 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
     params = paramsG + paramsD
     print('Nr of Trainable Params on {}:  '.format(device), params)
 
-    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-    #                                             step_size=2 * 10 ** 5,
-    #                                             gamma=0.5)
     if args.resume:
         print('Loading optimizer state dict')
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
@@ -133,7 +130,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
 
             real_loss = criterion(score_real, real_labels)
             fake_loss = criterion(score_fake, fake_labels)
-            loss_d = (real_loss + fake_loss) + lam*gradient_penalty
+            loss_d = (real_loss + fake_loss) #+ lam*gradient_penalty
             loss_d.backward()
 
             # update discriminator

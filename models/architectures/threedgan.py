@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.architectures import conv_lstm
 import pdb
+
+from models.architectures import conv_lstm
 
 """
 Implements model class of our 3D GAN model with conditional generative prior. 
@@ -27,16 +28,15 @@ class GaussianPrior(nn.Module):
     def __init__(self, in_c, cond_channels, final=False):
         super(GaussianPrior, self).__init__()
         self.cond_channels = cond_channels
-        self.conv = ConvLayer3D(input_dim=1, output_dim=2, stride=1)
+        self.conv = ConvLayer3D(input_dim=1, output_dim=2, stride=1, padding=(1,1,1))
 
     def final_prior(self, feat_map):
         h = self.conv(feat_map)
-        mean, sigma = h[:, 0::2], nn.functional.softplus(h[:, 1::2].type(torch.DoubleTensor).cuda())
+        mean, sigma = h[:, 0].unsqueeze(1), nn.functional.softplus(h[:, 1].unsqueeze(1).type(torch.DoubleTensor).cuda())
         return mean, sigma
 
     def forward(self, feat_map, eps=1.0):
         # sample from conditional prior
-        pdb.set_trace()
         mean, sigma = self.final_prior(feat_map)
         prior = torch.distributions.normal.Normal(loc=mean, scale=sigma*eps+0.00001)
         z = prior.sample().type(torch.FloatTensor).cuda()
@@ -52,16 +52,13 @@ class Generator(torch.nn.Module):
         self.conv_lstm = conv_lstm.ConvLSTMCell(in_channels=2, hidden_channels=32, out_channels=4*1, num_layers=3).to('cuda')
 
         padd = (1, 1, 1)
-        self.layer1 = ConvLayer3D(3, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        # self.unet3d_1 = UNet3D(in_channel=1)
-        # self.relu = torch.nn.ReLU()
-        # self.layer2 = self.conv_layer(2, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        # self.attn1 = SelfAttention(2*self.f_dim, height, width)
-        # self.layer3 = self.conv_layer(2*self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        # self.layer4 = self.conv_layer(2*self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        # self.attn2 = SelfAttention(self.f_dim, height, width)
-        # self.layer5 = self.conv_layer(self.f_dim, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-
+        self.layer1 = ConvLayer3D(2, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.layer2 = ConvLayer3D(self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.attn1 = SelfAttention(self.f_dim, height, width)
+        self.layer3 = ConvLayer3D(self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.layer4 = ConvLayer3D(2*self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        self.attn2 = SelfAttention(self.f_dim, height, width)
+        self.layer5 = ConvLayer3D(self.f_dim, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
 
     def forward(self, x, state=None):
 
@@ -76,21 +73,16 @@ class Generator(torch.nn.Module):
         z = self.cond_prior(h)
 
         # pass z through the generator networks
-        out = torch.cat((x, noise.unsqueeze(1).contiguous()), 2).permute(0,2,1,3,4).contiguous()
-        out1 = self.layer1(z)
         # pdb.set_trace()
-        # out2 = self.unet3d_1(out)
-        # cat_out = torch.cat((out1,out2),2)
-        # out = cat_out * 0.6 + x
-        # out = self.layer2(out.permute(0,2,1,3,4).contiguous())
-        # out = self.layer2(out)
-        # out = self.attn1(out)
-        # out = self.layer3(out)
-        # out = self.layer4(out)
-        # out = self.attn2(out)
-        # out = self.layer5(out)
+        out1 = self.layer1(z.permute(0,2,1,3,4).contiguous())
+        out2 = self.layer2(out1)
+        out3 = self.attn1(out2)
+        out4 = self.layer3(out3)
+        out5 = self.layer4(out4)
+        out6 = self.attn2(out5)
+        out7 = self.layer5(out6)
         # import pdb; pdb.set_trace()
-        return out1
+        return out7
 
 
 class Discriminator(torch.nn.Module):
