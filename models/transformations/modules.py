@@ -291,8 +291,7 @@ class Net(nn.Module):
         d = 2 if noscale else 1
 
         self.upsample_conv = nn.Conv3d(in_channels//2, 2**(2*(level+1))*c, kernel_size=1)
-        self.change_time_channel = nn.Conv3d(lag_len + 1, 1,
-                                             (1,1,1), stride=(1,1,1),padding=(0,0,0))  # nn.Conv3d(3, 1, kernel_size=1) # conv = nn.Conv3d(4, 1, (3,3,3), stride=(1,1,1),padding=(0,0,0))
+        self.change_time_channel = nn.Conv3d(lag_len + 1, 1, (1,1,1), stride=(1,1,1),padding=(0,0,0))  # nn.Conv3d(3, 1, kernel_size=1) # conv = nn.Conv3d(4, 1, (3,3,3), stride=(1,1,1),padding=(0,0,0))
 
         # pdb.set_trace()
         self.Net = nn.Sequential(

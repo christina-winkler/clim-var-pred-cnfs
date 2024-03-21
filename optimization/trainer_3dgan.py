@@ -48,6 +48,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
     logging_step = 0
     step = 0
     criterion = torch.nn.BCELoss()
+    mse_loss = torch.nn.MSELoss()
     optimizerG = optim.Adam(generator.parameters(), lr=args.lr, amsgrad=True)
     optimizerD = optim.Adam(discriminator.parameters(), lr=args.lr, amsgrad=True)
 
@@ -106,9 +107,9 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             fake_labels = Variable(torch.FloatTensor(args.bsz, 1).fill_(0)).to(args.device)
 
             # # wasserstein gradient penalty loss
-            # loss_d = torch.mean(score_fake) - torch.mean(score_real)
-            #
-            # # gradient penalty
+            loss_d = torch.mean(score_fake) - torch.mean(score_real)
+            
+            # gradient penalty
             lam = 10
             alpha = torch.randn(args.bsz, 1)
             alpha = alpha.expand(args.bsz, x[:,:,2:,:,:][0].nelement()).contiguous().view(args.bsz, x.size(1), x[:,:,2:,:,:].size(2), x.size(3), x.size(4)).to(args.device)
@@ -124,21 +125,22 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             gradient_penalty = ((gradients.norm(2, dim=1)-1)**2).mean()
             # loss_d = loss_d+lam*gradient_penalty
 
-            # eps = 0.001
-            # eps_penalty = torch.mean((score_real-0)**2)
-            # loss_d = loss_d+eps_penalty*eps
+            eps = 0.001
+            eps_penalty = torch.mean((score_real-0)**2)
+            loss_d = loss_d+eps_penalty*eps
 
             real_loss = criterion(score_real, real_labels)
             fake_loss = criterion(score_fake, fake_labels)
-            loss_d = (real_loss + fake_loss) #+ lam*gradient_penalty
+            
+            loss_d = (real_loss + fake_loss) + lam*gradient_penalty
             loss_d.backward()
 
             # update discriminator
             optimizerD.step()
 
-            # get discriminator output for fake image
-            fake_score_gen = discriminator(gen_x_for)
-            loss_g = criterion(fake_score_gen, fake_labels)
+            # compute adversarial loss
+            adv_loss = criterion(discriminator(gen_x_for), real_labels)
+            loss_g = mse_loss(gen_x_for, x_for)  #+ 0.01 * adv_loss
             loss_g.backward()
             optimizerG.step()
 
@@ -226,6 +228,17 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                     plt.title("Prediction at t")
                     # plt.show()
                     plt.savefig(viz_dir + '/predictions_{}.png'.format(step), dpi=300)
+                    plt.close()
+
+                    # visualize abs error 
+                    abs_err = torch.abs(x_for - gen_x_for)
+                    grid_abs_err = torchvision.utils.make_grid(abs_err[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
+                    plt.figure()
+                    plt.imshow(grid_abs_err.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+                    plt.axis('off')
+                    plt.title("Abs Err at t")
+                    # plt.show()
+                    plt.savefig(viz_dir + '/abs_err_{}.png'.format(step), dpi=300)
                     plt.close()
 
 
