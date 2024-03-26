@@ -65,7 +65,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
         print('Loading optimizer state dict')
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
 
-    color = 'inferno' if args.trainset == 'era5' else 'viridis'
+    color = 'inferno' if args.trainset == 'temp' else 'viridis'
 
     # write training configs to file
     hparams = {'lr': args.lr, 'bsize':args.bsz}
@@ -200,17 +200,17 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                     # plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
 
                     # # visualize future frame of the correct prediction
-                    # grid_future = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
+                    grid_future = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
                     # array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))
                     # cmap_future = np.apply_along_axis(cm.inferno, 2, array_imgs_future)
                     # future_imgs = wandb.Image(cmap_future, caption="Frame at t")
                     # wandb.log({"Frame at t (train) {}".format(step) : future_imgs})
 
-                    # plt.figure()
-                    # plt.imshow(grid_future.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
-                    # plt.axis('off')
-                    # plt.title("Ground Truth at t")
-                    # plt.savefig(viz_dir + '/frame_at_t_{}.png'.format(step), dpi=300)
+                    plt.figure()
+                    plt.imshow(grid_future.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+                    plt.axis('off')
+                    plt.title("Ground Truth at t")
+                    plt.savefig(viz_dir + '/frame_at_t_{}.png'.format(step), dpi=300)
 
                      # predicting a new sample based on context window
                     print("Predicting ...")

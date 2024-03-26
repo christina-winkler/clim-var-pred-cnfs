@@ -178,9 +178,9 @@ def main(args):
 
         print('Training 3DGAN ...')
         trainer_3dgan.trainer(args=args, train_loader=train_loader,
-                           valid_loader=valid_loader, generator=generator,
-                           discriminator=discriminator,
-                           device=args.device)
+                             valid_loader=valid_loader, generator=generator,
+                             discriminator=discriminator,
+                             device=args.device)
 
     elif args.modeltype == 'spategan':
         args.height, args.width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]

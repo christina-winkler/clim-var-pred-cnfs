@@ -82,8 +82,6 @@ class Generator(torch.nn.Module):
 
     def forward(self, x, state=None):
 
-        pdb.set_trace()
-
         # process context window
         if self.init or state==None:
             state = (torch.zeros_like(x), torch.zeros_like(x))

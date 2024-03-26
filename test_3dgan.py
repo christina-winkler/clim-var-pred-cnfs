@@ -92,7 +92,7 @@ parser.add_argument("--condch", type=int, default=128,
 # data
 parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
                     help="Dataset to train the model on.")
-parser.add_argument("--trainset", type=str, default="temp",
+parser.add_argument("--trainset", type=str, default="geop",
                     help="Dataset to train the model on.")
 # parser.add_argument("--testset", type=str, default="wbench",
 #                     help="Specify test dataset")
@@ -462,7 +462,7 @@ if __name__ == "__main__":
 
     if args.trainset == 'temp':
         # temperature
-        modelname = 'model_epoch_5_step_3700.tar'
+        modelname = 'generator_epoch_0_step_7250.tar'
         modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/3dgan_geop_no_ds__2024_03_21_11_06_39/model_checkpoints/{}'.format(modelname)
 
     elif args.trainset == 'geop':
