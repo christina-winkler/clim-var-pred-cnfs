@@ -130,6 +130,7 @@ def create_rollout(model, x_for, x_past, lead_time):
 def test(model, test_loader, exp_name, logstep, args):
 
     color = 'inferno' if args.trainset == 'temp' else 'viridis'
+
     # random.seed(0)
     # torch.manual_seed(0)
     # np.random.seed(0)
@@ -145,7 +146,7 @@ def test(model, test_loader, exp_name, logstep, args):
 
     savedir = os.getcwd() + '/runs/{}/test/'.format(exp_name)
     os.makedirs(savedir, exist_ok=True)
-    
+
     model.eval()
     with torch.no_grad():
         for batch_idx, item in enumerate(test_loader):
@@ -193,7 +194,9 @@ def test(model, test_loader, exp_name, logstep, args):
 
             fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5,1)
 
-            grid1 = torchvision.utils.make_grid(stack_pred_multiroll[0,:,...].cpu(), normalize=True, nrow=1)
+            # pdb.set_trace()
+
+            grid1 = torchvision.utils.make_grid(stack_pred_multiroll[0,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
             ax1.imshow(grid1.permute(2,1,0)[:,:,0], cmap=color, interpolation='none')
             divider = make_axes_locatable(ax1)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -201,7 +204,7 @@ def test(model, test_loader, exp_name, logstep, args):
             cax.set_axis_off()
             ax1.axis('off')
 
-            grid2 = torchvision.utils.make_grid(stack_pred_multiroll[1,:,...].cpu(), normalize=True, nrow=1)
+            grid2 = torchvision.utils.make_grid(stack_pred_multiroll[1,:,...].permute(0,1,3,2).cpu(), normalize=True, nrow=1)
             ax2.imshow(grid2.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax2)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -209,14 +212,14 @@ def test(model, test_loader, exp_name, logstep, args):
             ax2.axis('off')
 
 
-            grid3 = torchvision.utils.make_grid(stack_pred_multiroll[2,:,...].cpu(),normalize=True, nrow=1)
+            grid3 = torchvision.utils.make_grid(stack_pred_multiroll[2,:,...].permute(0,1,3,2).cpu(),normalize=True, nrow=1)
             ax3.imshow(grid3.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax3)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             cax.set_axis_off()
             ax3.axis('off')
 
-            grid4 = torchvision.utils.make_grid(x_for.squeeze(1).cpu(),normalize=True, nrow=1)
+            grid4 = torchvision.utils.make_grid(x_for.squeeze(1).permute(0,1,3,2).cpu(),normalize=True, nrow=1)
             ax4.set_title('Ground Truth', fontsize=5)
             ax4.imshow(grid4.permute(2,1,0)[:,:,0], cmap=color)
             divider = make_axes_locatable(ax4)
@@ -226,9 +229,9 @@ def test(model, test_loader, exp_name, logstep, args):
 
             divider = make_axes_locatable(ax5)
             cax = divider.append_axes("right", size="2%", pad=0.05)
-            grid5 = torchvision.utils.make_grid(stack_pred_multiroll[4,:,...].cpu(), nrow=1)
+            grid5 = torchvision.utils.make_grid(stack_pred_multiroll[4,:,...].permute(0,1,3,2).cpu(), nrow=1)
             im5 = ax5.imshow(grid5.permute(2,1,0)[:,:,0], cmap=color)
-            cbar = fig.colorbar(im5, cmap='inferno', cax=cax)
+            cbar = fig.colorbar(im5, cmap=color, cax=cax)
             cbar.ax.tick_params(labelsize=3)
             # cax.set_axis_off()
             ax5.set_title('Std. Dev.', fontsize=5)
@@ -242,7 +245,7 @@ def test(model, test_loader, exp_name, logstep, args):
             # from the same rollout different frames
             test_diff0 = stack_pred_multiroll[0,1,:,...]-stack_pred_multiroll[0,2,:,...]
             plt.figure()
-            plt.imshow(test_diff0.permute(2, 1, 0).cpu().numpy(), cmap=color)
+            plt.imshow(test_diff0.permute(1,2,0).cpu().numpy(), cmap=color)
             plt.axis('off')
             plt.title("test diff 0")
             plt.savefig(savedir + "/tesdiff1_logstep_{}_test.png".format(batch_idx), dpi=300)
@@ -251,7 +254,7 @@ def test(model, test_loader, exp_name, logstep, args):
             # same frames from different rollout - should be black
             test_diff1 = stack_pred_multiroll[0,1,:,...]-stack_pred_multiroll[2,1,:,...]
             plt.figure()
-            plt.imshow(test_diff1.permute(2, 1, 0).cpu().numpy(), cmap=color)
+            plt.imshow(test_diff1.permute(1, 2, 0).cpu().numpy(), cmap=color)
             plt.axis('off')
             plt.title("test diff 1")
             plt.savefig(savedir + "/tesdiff2_logstep_{}_test.png".format(batch_idx), dpi=300)
@@ -260,7 +263,7 @@ def test(model, test_loader, exp_name, logstep, args):
 
             grid_ground_truth = torchvision.utils.make_grid(x_for[:,:,0,:,:].cpu(), nrow=1)
             plt.figure()
-            plt.imshow(grid_ground_truth.permute(2, 1, 0)[:,:,0].contiguous(), cmap='inferno')
+            plt.imshow(grid_ground_truth.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
             plt.axis('off')
             plt.title("Frame at t+1")
             plt.savefig(savedir + "/x_t+1_logstep_{}.png".format(batch_idx), dpi=300)
@@ -270,7 +273,7 @@ def test(model, test_loader, exp_name, logstep, args):
 
             grid_trajec_preds = torchvision.utils.make_grid(stacked_pred.squeeze(1).cpu(), nrow=1)
             plt.figure()
-            plt.imshow(grid_trajec_preds.permute(2, 1, 0)[:,:,0].contiguous(), cmap='inferno')
+            plt.imshow(grid_trajec_preds.permute(0,1,2)[0,:,:].contiguous(), cmap=color)
             plt.axis('off')
             plt.tight_layout()
             plt.savefig(savedir + "/rolled_out_traj_test_step_{}.png".format(batch_idx), dpi=300)
@@ -278,7 +281,7 @@ def test(model, test_loader, exp_name, logstep, args):
 
             grid_abs_err = torchvision.utils.make_grid(abs_err1.squeeze(1).cpu(), nrow=1)
             plt.figure()
-            plt.imshow(grid_abs_err.permute(2, 1, 0)[:,:,0].contiguous(), cmap='inferno')
+            plt.imshow(grid_abs_err.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
             plt.axis('off')
             plt.tight_layout()
             plt.savefig(savedir + "/absolute_error_test_step_{}.png".format(batch_idx), dpi=300)
@@ -287,7 +290,7 @@ def test(model, test_loader, exp_name, logstep, args):
             # visualize past frames the prediction is based on (context)
             grid_past = torchvision.utils.make_grid(x_past[:, -1, :, :].cpu(), nrow=3)
             plt.figure()
-            plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap='inferno')
+            plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
             plt.axis('off')
             plt.title("Frame at t")
             plt.savefig(savedir + "/x_t_logstep_{}.png".format(batch_idx), dpi=300)
@@ -399,6 +402,7 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
         # plt.plot(avrg_psnr, label='3DUnet Best PSNR')
         # plt.grid(axis='y')
         # plt.axvline(x=1, color='brown')
+
         # plt.legend(loc='upper right')
         # plt.xlabel('Time-Step')
         # plt.ylabel('Average PSNR')
@@ -467,13 +471,14 @@ if __name__ == "__main__":
 
     if args.trainset == 'temp':
         # temperature
-        modelname = 'generator_epoch_0_step_7250.tar'
-        modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/3dgan_geop_no_ds__2024_03_21_11_06_39/model_checkpoints/{}'.format(modelname)
+        exp_name = '3dgan_temp_no_ds__2024_03_26_15_57_39'
+        modelname = 'generator_epoch_1_step_750.tar'
+        modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/3dgan_temp_no_ds__2024_03_26_15_57_39/model_checkpoints/{}'.format(modelname)
 
     elif args.trainset == 'geop':
         # geopotential
-        exp_name = '3dgan_geop_no_ds__2024_03_26_15_24_32'
-        modelname = 'generator_epoch_0_step_250.tar'
+        exp_name = '3dgan_geop_no_ds__2024_03_26_15_57_26'
+        modelname = 'generator_epoch_0_step_500.tar'
         modelpath = "/home/mila/c/christina.winkler/climsim_ds/runs/{}/model_checkpoints/{}".format(exp_name, modelname)
 
     model = threedgan.Generator(in_c=args.lag_len, out_c=1, height=height, width=width).cuda()
@@ -485,5 +490,5 @@ if __name__ == "__main__":
     print('Nr of Trainable Params on {}:  '.format('cuda'), params)
     print("Evaluate 3DGAN on test split ...")
 
-    # test(model.cuda(), test_loader, exp_name, -99999, args)
+    test(model.cuda(), test_loader, exp_name, -99999, args)
     metrics_eval(model.cuda(),test_loader, exp_name, modelname, -99999)
