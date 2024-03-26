@@ -102,15 +102,20 @@ parser.add_argument("--exp_name", type=str, default="convlstm_1x",
 
 args = parser.parse_args()
 
-def create_rollout(model, init_pred, x_for, x_past, lead_time):
+def create_rollout(model, x_for, x_past, lead_time):
 
     predictions = []
+
+    # Obtain the initial prediction, state, and ignore third output
+    past = x_past[0, :, :, :, :].unsqueeze(0)
+    init_pred = model(past)
+
     predictions.append(init_pred[0,:,:,:,:])
-    interm = x_past[0,1,:,:,:].unsqueeze(1).cuda()
+    interm = x_past[0,:,1,...].unsqueeze(1).cuda()
 
     for l in range(lead_time):
-        context = torch.cat((predictions[l-1].cuda(), interm.cuda()), 1).unsqueeze(2)
-        x = model(context)
+        context = torch.cat((predictions[l-1].cuda(), interm.cuda()), 1)
+        x = model(context.unsqueeze(0))
         predictions.append(x.squeeze(2))
         # pdb.set_trace()
         interm = x[:,0,:,:,:] # update intermediate state
@@ -123,7 +128,8 @@ def create_rollout(model, init_pred, x_for, x_past, lead_time):
     return stacked_pred, abs_err
 
 def test(model, test_loader, exp_name, logstep, args):
-    color = 'inferno' if args.trainset == 'era5' else 'viridis'
+
+    color = 'inferno' if args.trainset == 'temp' else 'viridis'
     # random.seed(0)
     # torch.manual_seed(0)
     # np.random.seed(0)
@@ -137,6 +143,9 @@ def test(model, test_loader, exp_name, logstep, args):
     avrg_fwd_time = []
     avrg_bw_time = []
 
+    savedir = os.getcwd() + '/runs/{}/test/'.format(exp_name)
+    os.makedirs(savedir, exist_ok=True)
+    
     model.eval()
     with torch.no_grad():
         for batch_idx, item in enumerate(test_loader):
@@ -144,7 +153,7 @@ def test(model, test_loader, exp_name, logstep, args):
             x = item[0]
 
             # split time series into context and prediction window
-            x_past, x_for = x[:,:-1,...].float().cuda(), x[:,-1,:,:,:].unsqueeze(1).cuda().float()
+            x_past, x_for = x[:,:, :2,...].cuda(), x[:,:,2:,...].cuda()
 
             start = timeit.default_timer()
             out = model.forward(x_past)
@@ -164,10 +173,10 @@ def test(model, test_loader, exp_name, logstep, args):
             pred_multiroll = []
             abs_err_multiroll = []
 
-            stacked_pred1, abs_err1 = create_rollout(model, out, x_for, x_past, rollout_len)
-            stacked_pred2, abs_err2 = create_rollout(model, out, x_for, x_past, rollout_len)
-            stacked_pred3, abs_err3 = create_rollout(model, out, x_for, x_past, rollout_len)
-            stacked_pred4, abs_err4 = create_rollout(model, out, x_for, x_past, rollout_len)
+            stacked_pred1, abs_err1 = create_rollout(model, x_for, x_past, rollout_len)
+            stacked_pred2, abs_err2 = create_rollout(model, x_for, x_past, rollout_len)
+            stacked_pred3, abs_err3 = create_rollout(model, x_for, x_past, rollout_len)
+            stacked_pred4, abs_err4 = create_rollout(model, x_for, x_past, rollout_len)
 
             std = (abs_err1 **2 + abs_err2**2 + abs_err3**2 + abs_err4**2)/4
             stack_pred_multiroll = torch.stack((stacked_pred1,stacked_pred2,stacked_pred3,stacked_pred4), dim=0).squeeze(2)
@@ -178,10 +187,6 @@ def test(model, test_loader, exp_name, logstep, args):
 
             # stack_pred_multiroll = torch.stack(pred_multiroll, dim=1).squeeze(2)
             # stack_abserr_multiroll = torch.stack(abs_err_multiroll, dim=1).squeeze(2)
-
-            savedir = os.getcwd() + '/experiments/convlstm/snapshots/{}_test'.format(args.trainset)
-
-            os.makedirs(savedir, exist_ok=True)
 
             # Plot Simulated Rollout Trajectories with Std. starting from same context window
             fig, axes = plt.subplots(nrows=nr_of_rollouts+1, ncols=rollout_len)
@@ -261,7 +266,7 @@ def test(model, test_loader, exp_name, logstep, args):
             plt.savefig(savedir + "/x_t+1_logstep_{}.png".format(batch_idx), dpi=300)
             plt.close()
 
-            stacked_pred, abs_err = create_rollout(model, out, x_for, x_past, rollout_len)
+            stacked_pred, abs_err = create_rollout(model, x_for, x_past, rollout_len)
 
             grid_trajec_preds = torchvision.utils.make_grid(stacked_pred.squeeze(1).cpu(), nrow=1)
             plt.figure()
@@ -314,7 +319,7 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
     rmse = []
     w_rmse = []
 
-    savedir = os.getcwd() + '/experiments/convlstm/'
+    savedir = os.getcwd() + '/runs/{}/test/'.format(exp_name)
     os.makedirs(savedir, exist_ok=True)
 
     model.eval()
@@ -467,8 +472,9 @@ if __name__ == "__main__":
 
     elif args.trainset == 'geop':
         # geopotential
-        modelname = 'generator_epoch_0_step_7250.tar'
-        modelpath = "/home/mila/c/christina.winkler/climsim_ds/runs/3dgan_geop_no_ds__2024_03_21_11_06_39/model_checkpoints/{}".format(modelname)
+        exp_name = '3dgan_geop_no_ds__2024_03_26_15_24_32'
+        modelname = 'generator_epoch_0_step_250.tar'
+        modelpath = "/home/mila/c/christina.winkler/climsim_ds/runs/{}/model_checkpoints/{}".format(exp_name, modelname)
 
     model = threedgan.Generator(in_c=args.lag_len, out_c=1, height=height, width=width).cuda()
     ckpt = torch.load(modelpath)
@@ -479,5 +485,5 @@ if __name__ == "__main__":
     print('Nr of Trainable Params on {}:  '.format('cuda'), params)
     print("Evaluate 3DGAN on test split ...")
 
-    test(model.cuda(), test_loader, "3DGAN", -99999, args)
-    # metrics_eval(model.cuda(),test_loader, "3DGAN", modelname, -99999)
+    # test(model.cuda(), test_loader, exp_name, -99999, args)
+    metrics_eval(model.cuda(),test_loader, exp_name, modelname, -99999)

@@ -254,15 +254,13 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                 #                   loss_valid.mean().item(),
                 #                   logging_step)
 
-                # save checkpoint only when nll lower than previous model
-                if loss_valid < prev_loss_epoch:
-                    PATH = args.experiment_dir + '/model_checkpoints/'
-                    os.makedirs(PATH, exist_ok=True)
-                    torch.save({'epoch': epoch,
+                # save checkpoint 
+                PATH = args.experiment_dir + '/model_checkpoints/'
+                os.makedirs(PATH, exist_ok=True)
+                torch.save({'epoch': epoch,
                                 'model_state_dict': generator.state_dict(),
                                 'optimizer_state_dict': optimizerG.state_dict(),
                                 'loss': loss_valid.mean()}, PATH+ f"generator_epoch_{epoch}_step_{step}.tar")
-                    prev_loss_epoch = loss_valid
 
             logging_step += 1
 
