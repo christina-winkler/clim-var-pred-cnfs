@@ -14,13 +14,13 @@ import random
 import pdb
 import torchvision
 from torch.autograd import Variable
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
 from models.architectures.conv_lstm import *
 from optimization.validation_futgan import validate
 
-import wandb
-os.environ["WANDB_SILENT"] = "true"
+# import wandb
+# os.environ["WANDB_SILENT"] = "true"
 import sys
 sys.path.append("../../")
 
@@ -43,7 +43,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
     viz_dir = "{}/snapshots/trainset/".format(args.experiment_dir)
     os.makedirs(viz_dir, exist_ok=True)
 
-    writer = SummaryWriter("{}".format(args.experiment_dir))
+    # writer = SummaryWriter("{}".format(args.experiment_dir))
     prev_loss_epoch = np.inf
     logging_step = 0
     step = 0
@@ -250,9 +250,9 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                                       "{}".format(step),
                                       args)
 
-                writer.add_scalar("loss_valid",
-                                  loss_valid.mean().item(),
-                                  logging_step)
+                # writer.add_scalar("loss_valid",
+                #                   loss_valid.mean().item(),
+                #                   logging_step)
 
                 # save checkpoint only when nll lower than previous model
                 if loss_valid < prev_loss_epoch:

@@ -53,6 +53,7 @@ class Generator(torch.nn.Module):
         self.conv_lstm = conv_lstm.ConvLSTMCell(in_channels=2, hidden_channels=32, out_channels=4*1, num_layers=3).to('cuda')
 
         padd = (1, 1, 1)
+        self.deconv = torch.nn.ConvTranspose3d(2, self.f_dim, 3)
         self.layer1 = ConvLayer3D(2, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
         self.layer2 = ConvLayer3D(self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
         self.attn1 = SelfAttention(2*self.f_dim, height, width)
@@ -60,7 +61,7 @@ class Generator(torch.nn.Module):
         self.layer4 = ConvLayer3D(2*self.f_dim, self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
         self.attn2 = SelfAttention(self.f_dim, height, width)
         self.layer5 = ConvLayer3D(self.f_dim, 2*self.f_dim, kernel_size=3, stride=1, padding=padd, bias=self.bias)
-        self.layer6 = ConvLayer3D(2*self.f_dim, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
+        # self.layer6 = ConvLayer3D(2*self.f_dim, 1, kernel_size=3, stride=1, padding=padd, bias=self.bias)
 
         self.block1 = nn.Sequential(
             nn.Conv2d(128, 64, kernel_size=9, padding=4),
@@ -80,6 +81,8 @@ class Generator(torch.nn.Module):
         # self.block8 = nn.Sequential(*block8)
 
     def forward(self, x, state=None):
+
+        pdb.set_trace()
 
         # process context window
         if self.init or state==None:
@@ -115,7 +118,7 @@ class Generator(torch.nn.Module):
         block6 = self.block6(block5)
         block7 = self.block7(block1 + block6)
         # block8 = self.block8(block1 + block7)
-        return block7.unsqueeze(1) #(torch.tanh(block8) + 1) / 2
+        return block7.unsqueeze(1) / 2 #(torch.tanh(block8) + 1) / 2
 
 
 class Discriminator(torch.nn.Module):

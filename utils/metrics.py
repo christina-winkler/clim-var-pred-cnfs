@@ -117,7 +117,7 @@ def compute_latitude_weights(latitude, longitude):
 
 def weighted_RMSE(yhat, y, latitude, longitude):
     weights = compute_latitude_weights(latitude, longitude)
-    pdb.set_trace()
+    # pdb.set_trace()
     _,_,w,h = y.size()
     sq_diff = (weights.view(w,h) * (yhat-y)**2)
     mean = sq_diff.mean(dim=[1,2,3])

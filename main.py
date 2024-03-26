@@ -173,7 +173,6 @@ def main(args):
 
     elif args.modeltype == '3dgan':
         height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
-
         generator = threedgan.Generator(in_c=args.lag_len, out_c=1, height=height, width=width).to(args.device)
         discriminator = threedgan.Discriminator(in_c=1, out_c=1, height=height, width=width).to(args.device)
 
@@ -304,7 +303,7 @@ if __name__ == "__main__":
     parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
                         help="Dataset to train the model on.")
     parser.add_argument("--trainset", type=str, default="geop",
-                        help="Dataset to train the model on.")
+                        help="Dataset to train the model on [geop, temp].")
 
     # FutureGAN config options
     parser.add_argument('--dgx', type=bool, default=False, help='set to True, if code is run on dgx, default=`False`')
