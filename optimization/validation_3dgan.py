@@ -23,7 +23,7 @@ def validate(generator, discriminator, val_loader, exp_name, logstep, args):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-    color = 'inferno' if args.trainset == 'era5' else 'viridis'
+    color = 'inferno' if args.trainset == 'temp' else 'viridis'
 
     loss_list=[]
     generator.eval()

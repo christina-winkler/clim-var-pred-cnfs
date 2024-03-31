@@ -14,13 +14,13 @@ import random
 import pdb
 import torchvision
 from torch.autograd import Variable
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
 from models.architectures.conv_lstm import *
 from optimization.validation_futgan import validate
 
-import wandb
-os.environ["WANDB_SILENT"] = "true"
+# import wandb
+# os.environ["WANDB_SILENT"] = "true"
 import sys
 sys.path.append("../../")
 
@@ -43,11 +43,12 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
     viz_dir = "{}/snapshots/trainset/".format(args.experiment_dir)
     os.makedirs(viz_dir, exist_ok=True)
 
-    writer = SummaryWriter("{}".format(args.experiment_dir))
+    # writer = SummaryWriter("{}".format(args.experiment_dir))
     prev_loss_epoch = np.inf
     logging_step = 0
     step = 0
     criterion = torch.nn.BCELoss()
+    mse_loss = torch.nn.MSELoss()
     optimizerG = optim.Adam(generator.parameters(), lr=args.lr, amsgrad=True)
     optimizerD = optim.Adam(discriminator.parameters(), lr=args.lr, amsgrad=True)
 
@@ -60,14 +61,11 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
     params = paramsG + paramsD
     print('Nr of Trainable Params on {}:  '.format(device), params)
 
-    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-    #                                             step_size=2 * 10 ** 5,
-    #                                             gamma=0.5)
     if args.resume:
         print('Loading optimizer state dict')
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
 
-    color = 'inferno' if args.trainset == 'era5' else 'viridis'
+    color = 'inferno' if args.trainset == 'temp' else 'viridis'
 
     # write training configs to file
     hparams = {'lr': args.lr, 'bsize':args.bsz}
@@ -77,7 +75,8 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
 
     if torch.cuda.device_count() > 1 and args.train:
         print("Running on {} GPUs!".format(torch.cuda.device_count()))
-        model = torch.nn.DataParallel(model)
+        generator = torch.nn.DataParallel(generator)
+        discriminator = torch.nn.DataParallel(discriminator)
         args.parallel = True
 
     for epoch in range(args.epochs):
@@ -96,7 +95,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
 
             # generate future sequence
             noise = torch.randn_like(x_past)[:,:,0,...]
-            gen_x_for = generator(x_past, noise) # takes in sequence of past frames to predict sequence of future frames
+            gen_x_for = generator(x_past) # takes in sequence of past frames to predict sequence of future frames
 
             # distinguish between real and fake sequences
             # compute score - float
@@ -108,6 +107,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             fake_labels = Variable(torch.FloatTensor(args.bsz, 1).fill_(0)).to(args.device)
 
             # # wasserstein gradient penalty loss
+<<<<<<< HEAD
             # loss_d = torch.mean(score_fake) - torch.mean(score_real)
             #
             # # gradient penalty
@@ -124,23 +124,46 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
             # # # compute gradients
             # gradients = gradients.view(gradients.size(0), -1)
             # gradient_penalty = ((gradients.norm(2, dim=1)-1)**2).mean()
+=======
+            loss_d = torch.mean(score_fake) - torch.mean(score_real)
+            
+            # gradient penalty
+            lam = 10
+            alpha = torch.randn(args.bsz, 1)
+            alpha = alpha.expand(args.bsz, x[:,:,2:,:,:][0].nelement()).contiguous().view(args.bsz, x.size(1), x[:,:,2:,:,:].size(2), x.size(3), x.size(4)).to(args.device)
+            interpolates = alpha*x[:,:,2:,:,:]+((1-alpha)*gen_x_for).to(args.device)
+            interpolates = Variable(interpolates, requires_grad=True).to(args.device)
+            interpolates_score = discriminator(interpolates)
+            gradients = torch.autograd.grad(outputs=interpolates_score, inputs=interpolates,
+                                            grad_outputs=torch.ones(interpolates_score.size()).cuda(),
+                                            create_graph=True, retain_graph=True, only_inputs=True)[0]
+
+            # compute gradients
+            gradients = gradients.view(gradients.size(0), -1)
+            gradient_penalty = ((gradients.norm(2, dim=1)-1)**2).mean()
+>>>>>>> 9b035ff0182f36a73789aac713f05116a2309cfb
             # loss_d = loss_d+lam*gradient_penalty
 
-            # eps = 0.001
-            # eps_penalty = torch.mean((real_score-0)**2)
-            # loss_d = loss_d+eps_penalty*eps
+            eps = 0.001
+            eps_penalty = torch.mean((score_real-0)**2)
+            loss_d = loss_d+eps_penalty*eps
 
             real_loss = criterion(score_real, real_labels)
             fake_loss = criterion(score_fake, fake_labels)
+<<<<<<< HEAD
             loss_d = (real_loss + fake_loss) # + lam*gradient_penalty
+=======
+            
+            loss_d = (real_loss + fake_loss) + lam*gradient_penalty
+>>>>>>> 9b035ff0182f36a73789aac713f05116a2309cfb
             loss_d.backward()
 
             # update discriminator
             optimizerD.step()
 
-            # get discriminator output for fake image
-            fake_score_gen = discriminator(gen_x_for)
-            loss_g = criterion(fake_score_gen, fake_labels)
+            # compute adversarial loss
+            adv_loss = criterion(discriminator(gen_x_for), real_labels)
+            loss_g = mse_loss(gen_x_for, x_for)  #+ 0.01 * adv_loss
             loss_g.backward()
             optimizerG.step()
 
@@ -200,17 +223,17 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                     # plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
 
                     # # visualize future frame of the correct prediction
-                    # grid_future = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
+                    grid_future = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
                     # array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))
                     # cmap_future = np.apply_along_axis(cm.inferno, 2, array_imgs_future)
                     # future_imgs = wandb.Image(cmap_future, caption="Frame at t")
                     # wandb.log({"Frame at t (train) {}".format(step) : future_imgs})
 
-                    # plt.figure()
-                    # plt.imshow(grid_future.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
-                    # plt.axis('off')
-                    # plt.title("Ground Truth at t")
-                    # plt.savefig(viz_dir + '/frame_at_t_{}.png'.format(step), dpi=300)
+                    plt.figure()
+                    plt.imshow(grid_future.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+                    plt.axis('off')
+                    plt.title("Ground Truth at t")
+                    plt.savefig(viz_dir + '/frame_at_t_{}.png'.format(step), dpi=300)
 
                      # predicting a new sample based on context window
                     print("Predicting ...")
@@ -230,6 +253,17 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                     plt.savefig(viz_dir + '/predictions_{}.png'.format(step), dpi=300)
                     plt.close()
 
+                    # visualize abs error 
+                    abs_err = torch.abs(x_for - gen_x_for)
+                    grid_abs_err = torchvision.utils.make_grid(abs_err[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
+                    plt.figure()
+                    plt.imshow(grid_abs_err.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+                    plt.axis('off')
+                    plt.title("Abs Err at t")
+                    # plt.show()
+                    plt.savefig(viz_dir + '/abs_err_{}.png'.format(step), dpi=300)
+                    plt.close()
+
 
             if step % args.val_interval == 0:
                 print('Validating model ... ')
@@ -239,19 +273,17 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                                       "{}".format(step),
                                       args)
 
-                writer.add_scalar("loss_valid",
-                                  loss_valid.mean().item(),
-                                  logging_step)
+                # writer.add_scalar("loss_valid",
+                #                   loss_valid.mean().item(),
+                #                   logging_step)
 
-                # save checkpoint only when nll lower than previous model
-                if loss_valid < prev_loss_epoch:
-                    PATH = args.experiment_dir + '/model_checkpoints/'
-                    os.makedirs(PATH, exist_ok=True)
-                    torch.save({'epoch': epoch,
+                # save checkpoint 
+                PATH = args.experiment_dir + '/model_checkpoints/'
+                os.makedirs(PATH, exist_ok=True)
+                torch.save({'epoch': epoch,
                                 'model_state_dict': generator.state_dict(),
                                 'optimizer_state_dict': optimizerG.state_dict(),
                                 'loss': loss_valid.mean()}, PATH+ f"generator_epoch_{epoch}_step_{step}.tar")
-                    prev_loss_epoch = loss_valid
 
             logging_step += 1
 

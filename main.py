@@ -173,15 +173,14 @@ def main(args):
 
     elif args.modeltype == '3dgan':
         height, width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
-
         generator = threedgan.Generator(in_c=args.lag_len, out_c=1, height=height, width=width).to(args.device)
         discriminator = threedgan.Discriminator(in_c=1, out_c=1, height=height, width=width).to(args.device)
 
         print('Training 3DGAN ...')
         trainer_3dgan.trainer(args=args, train_loader=train_loader,
-                           valid_loader=valid_loader, generator=generator,
-                           discriminator=discriminator,
-                           device=args.device)
+                             valid_loader=valid_loader, generator=generator,
+                             discriminator=discriminator,
+                             device=args.device)
 
     elif args.modeltype == 'spategan':
         args.height, args.width = next(iter(train_loader))[0].shape[3], next(iter(train_loader))[0].shape[4]
@@ -231,7 +230,6 @@ def main(args):
                                  valid_loader=valid_loader,
                                  model=model.cuda(),
                                  device=args.device)
-
 
 if __name__ == "__main__":
 
@@ -300,12 +298,12 @@ if __name__ == "__main__":
                         help="# of residual-in-residual blocks in LR network.")
 
     # data
-    parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
-                        help="Dataset to train the model on.")
-    # parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
+    # parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
     #                     help="Dataset to train the model on.")
-    parser.add_argument("--trainset", type=str, default="geop",
+    parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
                         help="Dataset to train the model on.")
+    parser.add_argument("--trainset", type=str, default="geop",
+                        help="Dataset to train the model on [geop, temp].")
 
     # FutureGAN config options
     parser.add_argument('--dgx', type=bool, default=False, help='set to True, if code is run on dgx, default=`False`')
