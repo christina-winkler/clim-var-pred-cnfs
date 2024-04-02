@@ -68,7 +68,6 @@ class ActNorm(nn.Module):
 
             output = (input + b) * torch.exp(logs)
             dlogdet = torch.sum(logs) * input.size(-1)  # c x h
-
             return output.view(input_shape), logdet.cuda() + dlogdet.cuda()
 
         elif reverse == True:
@@ -355,12 +354,14 @@ class ConditionalCoupling(nn.Module):
         if not reverse:
             y2 = (z2 + t) * logscale.exp()
             y1 = z1
-            logdet if self.noscale else flatten_sum(logscale)
+            # logdet if self.noscale else flatten_sum(logscale)
+            logdet if self.noscale else logscale
 
         else:
             y2 = (z2 * torch.exp(-logscale) - t)
             y1 = z1
-            logdet if self.noscale else flatten_sum(logscale)
+            # logdet if self.noscale else flatten_sum(logscale)
+            logdet if self.noscale else logscale
 
         y = torch.cat((y1, y2), dim=1)
         return y, logdet
@@ -476,14 +477,17 @@ class GaussianPrior(nn.Module):
                 self.y = y.detach()
                 mean, log_sigma = self.split2d_prior(z, h)
                 prior = torch.distributions.normal.Normal(loc=mean, scale=log_sigma)
-                logpz += prior.log_prob(y).sum(dim=[1,2,3,4])
+                import pdb; pdb.set_trace()
+                # logpz += prior.log_prob(y).sum(dim=[1,2,3,4])
+                logpz += prior.log_prob(y)
 
             else:
                 # print("Computing log probs final")
                 # final prior computation
                 mean, log_sigma = self.final_prior(h)
                 prior = torch.distributions.normal.Normal(loc=mean, scale=log_sigma)
-                logpz += prior.log_prob(x).sum(dim=[1,2,3,4])
+                # logpz += prior.log_prob(x).sum(dim=[1,2,3,4])
+                logpz += prior.log_prob(x)
                 self.y = x
                 z = x
 

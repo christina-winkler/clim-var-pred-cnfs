@@ -236,7 +236,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # train configs
-    parser.add_argument("--modeltype", type=str, default="3dgan",
+    parser.add_argument("--modeltype", type=str, default="flow",
                         help="Specify modeltype you would like to train [flow, diff, unet3d, convLSTM, futgan, spategan].")
     parser.add_argument("--model_path", type=str, default="runs/",
                         help="Directory where models are saved.")
@@ -298,10 +298,10 @@ if __name__ == "__main__":
                         help="# of residual-in-residual blocks in LR network.")
 
     # data
-    # parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
-    #                     help="Dataset to train the model on.")
-    parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
+    parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
                         help="Dataset to train the model on.")
+    # parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
+    #                     help="Dataset to train the model on.")
     parser.add_argument("--trainset", type=str, default="geop",
                         help="Dataset to train the model on [geop, temp].")
 
