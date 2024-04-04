@@ -73,8 +73,6 @@ def plot_density(density_func, args):
     # Assuming your density function is called 'density_func'
     density_values = density_func(x=meshgrid_z, h=meshgrid_h, reverse=False)
 
-
-
 def trainer(args, train_loader, valid_loader, model,
             device='cpu', needs_init=True, ckpt=None):
 
