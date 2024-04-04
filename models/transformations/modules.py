@@ -279,7 +279,7 @@ class conv3d_zeros(nn.Conv3d):
 
 class Net(nn.Module):
     def __init__(self, level, s, in_channels, input_shape, cond_channels, lag_len,
-                 noscale, noscaletest, intermediate_size=512):
+                 noscale, noscaletest, intermediate_size=128):
         super().__init__()
 
         self.squeezer = Squeeze()
@@ -383,16 +383,16 @@ class GaussianPrior(nn.Module):
         if final:
 
             if level == 1:
-                self.conv1 = nn.Conv3d(2**(2*(level+1)), 32, kernel_size=3, padding=1)
-                self.conv2 = nn.Conv3d(32, 2*2**(2*(level+1))//2, kernel_size=1)
+                self.conv1 = nn.Conv3d(2**(2*(level+1)), 16, kernel_size=3, padding=1)
+                self.conv2 = nn.Conv3d(16, 2*2**(2*(level+1))//2, kernel_size=1)
 
             elif level==0:
-                self.conv1 = nn.Conv3d(2**(2*(level+1)), 32, kernel_size=3, padding=1)
-                self.conv2 = nn.Conv3d(32, 2*c, kernel_size=1)
+                self.conv1 = nn.Conv3d(2**(2*(level+1)), 16, kernel_size=3, padding=1)
+                self.conv2 = nn.Conv3d(16, 2*c, kernel_size=1)
 
             elif level==2:
-                self.conv1 = nn.Conv3d(2**(2*(level+1)), 32, kernel_size=3, padding=1)
-                self.conv2 = nn.Conv3d(32, 2*2**(2*(level+1))//4, kernel_size=1)
+                self.conv1 = nn.Conv3d(2**(2*(level+1)), 16, kernel_size=3, padding=1)
+                self.conv2 = nn.Conv3d(16, 2*2**(2*(level+1))//4, kernel_size=1)
 
             # self.Net = nn.Sequential(
             #            nn.Conv3d(4, 64,

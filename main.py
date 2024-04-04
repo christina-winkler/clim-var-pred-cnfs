@@ -76,7 +76,7 @@ def main(args):
             ckpt = torch.load(modelpath)
             model.load_state_dict(ckpt['model_state_dict'])
 
-        if args.ds or args.s > 1:
+        if args.ds:
 
             sr_model = srflow.SRFlow((in_channels, height, width), args.filter_size, args.Lsr, args.Ksr,
                                       args.bsz, args.s, args.nb, args.condch, args.nbits, args.noscale, args.noscaletest)
@@ -284,7 +284,7 @@ if __name__ == "__main__":
                         help="Lead time length of time-series")
     parser.add_argument("--lr", type=float, default=0.0002,
                         help="learning rate")
-    parser.add_argument("--filter_size", type=int, default=512//2,
+    parser.add_argument("--filter_size", type=int, default=16,
                         help="filter size NN in Affine Coupling Layer")
     parser.add_argument("--Lst", type=int, default=3, help="# of levels")
     parser.add_argument("--Kst", type=int, default=2,
@@ -292,9 +292,9 @@ if __name__ == "__main__":
     parser.add_argument("--Lsr", type=int, default=3, help="# of levels")
     parser.add_argument("--Ksr", type=int, default=2,
                         help="# of flow steps, i.e. model depth")
-    parser.add_argument("--nb", type=int, default=16,
+    parser.add_argument("--nb", type=int, default=64,
                         help="# of residual-in-residual blocks LR network.")
-    parser.add_argument("--condch", type=int, default=128//8,
+    parser.add_argument("--condch", type=int, default=64,
                         help="# of residual-in-residual blocks in LR network.")
 
     # data

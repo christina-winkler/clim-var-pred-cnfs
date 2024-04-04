@@ -144,7 +144,7 @@ def test(model, test_loader, exp_name, logstep, args):
     avrg_fwd_time = []
     avrg_bw_time = []
 
-    savedir = os.getcwd() + '/runs/{}/test/'.format(exp_name)
+    savedir = os.getcwd() + '/runs/{}/test/snaphots/'.format(exp_name)
     os.makedirs(savedir, exist_ok=True)
 
     model.eval()
@@ -311,7 +311,7 @@ class InverseMinMaxScaler:
 
 def metrics_eval(model, test_loader, exp_name, modelname, logstep):
 
-    print("Metric evaluation on {}...".format(args.trainset))
+    print("Metric evaluation on {} ...".format(args.trainset))
 
     # storing metrics
     # ssim = [0] * args.bsz
@@ -322,7 +322,7 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
     rmse = []
     w_rmse = []
 
-    savedir = os.getcwd() + '/runs/{}/test/'.format(exp_name)
+    savedir = os.getcwd() + '/runs/{}/test/metrics/'.format(exp_name)
     os.makedirs(savedir, exist_ok=True)
 
     model.eval()
@@ -478,7 +478,7 @@ if __name__ == "__main__":
     elif args.trainset == 'geop':
         # geopotential
         exp_name = '3dgan_geop_no_ds__2024_03_26_15_57_26'
-        modelname = 'generator_epoch_0_step_500.tar'
+        modelname = 'generator_epoch_1_step_25000.tar'
         modelpath = "/home/mila/c/christina.winkler/climsim_ds/runs/{}/model_checkpoints/{}".format(exp_name, modelname)
 
     model = threedgan.Generator(in_c=args.lag_len, out_c=1, height=height, width=width).cuda()
@@ -491,4 +491,4 @@ if __name__ == "__main__":
     print("Evaluate 3DGAN on test split ...")
 
     test(model.cuda(), test_loader, exp_name, -99999, args)
-    metrics_eval(model.cuda(),test_loader, exp_name, modelname, -99999)
+    # metrics_eval(model.cuda(),test_loader, exp_name, modelname, -99999)

@@ -90,7 +90,7 @@ class NormFlowNet(nn.Module):
         self.testmode = testmode
         self.output_shapes = []
         self.layers = nn.ModuleList()
-        self.conv_lstm = ConvLSTMCell(in_channels=2, hidden_channels=32,
+        self.conv_lstm = ConvLSTMCell(in_channels=2, hidden_channels=64,
                                       out_channels=4*1, num_layers=3).to('cuda')
         self.device = device
         self.init = True
@@ -237,7 +237,7 @@ class NormFlowNet(nn.Module):
 
 class FlowModel(nn.Module):
     def __init__(self, input_shape, filter_size, L, K, bsz, lag_len,
-                 s, nb, device='cpu', cond_channels=128,
+                 s, nb, device='cpu', cond_channels=32,
                  n_bits_x=8, noscale=False, noscaletest=False, testmode=False):
 
         super().__init__()
