@@ -30,6 +30,49 @@ np.random.seed(0)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
+
+def plot_density(density_func, args):
+
+    # set viz dir
+    viz_dir = "{}/snapshots/trainset/".format(args.experiment_dir)
+    os.makedirs(viz_dir, exist_ok=True)
+
+    tensor = torch.randn(16, 4, 2, 16, 32)
+
+    # Step 1: Create meshgrid
+    grid_x, grid_y, grid_z, grid_w, grid_h = torch.meshgrid(
+        torch.linspace(-1, 1, tensor.size(0)),  # Define your ranges appropriately
+        torch.linspace(-1, 1, tensor.size(1)),  # Define your ranges appropriately
+        torch.linspace(-1, 1, tensor.size(2)),  # Define your ranges appropriately
+        torch.linspace(-1, 1, tensor.size(3)),   # Define your ranges appropriately
+        torch.linspace(-1, 1, tensor.size(4))
+    )
+
+    # Concatenate grid points to have shape [num_samples, 4, 2, 16, 32]
+    meshgrid_h = grid_x # torch.stack((grid_x, grid_w, , grid_y, grid_z), dim=-1)
+
+    # Step 2: Reshape meshgrid to have shape [16, 4, 2, 16, 32]
+    meshgrid_h = meshgrid_h.permute(3, 2, 1, 0, 4).contiguous()
+
+    # Step 1: Create meshgrid
+    tensor = torch.randn(16, 4, 1, 16, 32)
+    grid_x, grid_y, grid_z, grid_w, grid_h = torch.meshgrid(
+        torch.linspace(-1, 1, tensor.size(0)),  # Define your ranges appropriately
+        torch.linspace(-1, 1, tensor.size(1)),  # Define your ranges appropriately
+        torch.linspace(-1, 1, tensor.size(2)),  # Define your ranges appropriately
+        torch.linspace(-1, 1, tensor.size(3)),   # Define your ranges appropriately
+        torch.linspace(-1, 1, tensor.size(4))
+    )
+
+    meshgrid_z = torch.stack((grid_w, grid_x, grid_y, grid_z), dim=-1)
+
+    # Step 2: Reshape meshgrid to have shape [16, 4, 2, 16, 32]
+    meshgrid_z = grid_x #.permute(3, 2, 1, 0, 4).contiguous()
+
+    # Step 3: Evaluate density function
+    # Assuming your density function is called 'density_func'
+    density_values = density_func(x=meshgrid_z, h=meshgrid_h, reverse=False)
+
 def trainer(args, train_loader, valid_loader, model,
             device='cpu', needs_init=True, ckpt=None):
 
@@ -64,7 +107,7 @@ def trainer(args, train_loader, valid_loader, model,
 
     # write training configs to file
     hparams = {'lr': args.lr, 'bsize':args.bsz, 'Flow Steps':args.Ksr, 'Levels':args.Lsr, 's':args.s, 'ds': args.ds}
-    
+
     with open(args.experiment_dir + '/configs.txt','w') as file:
         file.write(json.dumps(hparams))
 
@@ -92,7 +135,7 @@ def trainer(args, train_loader, valid_loader, model,
                                             xlr=x[:bsz_p_gpu],
                                             logdet=0)
 
-            z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
+            z, state, nll, logp_z = model.forward(x=x_for, x_past=x_past, state=state)
             writer.add_scalar("nll_train", nll.mean().item(), step)
 
             # Compute gradients
@@ -122,9 +165,8 @@ def trainer(args, train_loader, valid_loader, model,
                     model.eval()
 
                     # testing reconstruction - should be exact same as x_for
-                    # pdb.set_trace()
                     reconstructions, _, _ = model.forward(z=z.cuda(), x_past=x_past.cuda(), state=state,
-                                      use_stored=True, reverse=True)
+                                                          use_stored=True, reverse=True)
 
                     squared_recon_error = (reconstructions-x_for).mean()**2
                     print("Reconstruction Error:", (reconstructions-x_for).mean())
@@ -154,8 +196,8 @@ def trainer(args, train_loader, valid_loader, model,
                     plt.axis('off')
                     plt.title("Context Frame at t-1 (train)")
                     plt.savefig(viz_dir + '/frame_at_t-1_{}.png'.format(step), dpi=300)
-                    
-                    # # visualize future frame of the correct prediction
+
+                    # visualize future frame of the correct prediction
                     grid_future = torchvision.utils.make_grid(x_for[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
                     array_imgs_future = np.array(grid_future.permute(2,1,0)[:,:,0].unsqueeze(2))
                     cmap_future = np.apply_along_axis(cm.inferno, 2, array_imgs_future)
@@ -167,6 +209,17 @@ def trainer(args, train_loader, valid_loader, model,
                     plt.axis('off')
                     plt.title("Ground Truth at t")
                     plt.savefig(viz_dir + '/frame_at_t_{}.png'.format(step), dpi=300)
+
+                    # visualize log probabilities
+                    # plot_density(model.flow.level_modules[-1][-1], args)
+                    # logp_z_exp = logp_z.sum(dim=[1]).exp().sum()/ (16*32)
+                    # grid_log_pz = torchvision.utils.make_grid(logp_z.sum(dim=[1])[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
+                    # plt.figure()
+                    # plt.imshow(grid_log_pz.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+                    # plt.axis('off')
+                    # plt.title("Log-probabilities of Gaussianized Input")
+                    # plt.show()
+                    # plt.savefig(viz_dir + '/log_pz_{}.png'.format(step), dpi=300)
 
                      # predicting a new sample based on context window
                     print("Predicting ...")

@@ -108,7 +108,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
 
             # # wasserstein gradient penalty loss
             loss_d = torch.mean(score_fake) - torch.mean(score_real)
-            
+
             # gradient penalty
             lam = 10
             alpha = torch.randn(args.bsz, 1)
@@ -131,7 +131,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
 
             real_loss = criterion(score_real, real_labels)
             fake_loss = criterion(score_fake, fake_labels)
-            
+
             loss_d = (real_loss + fake_loss) + lam*gradient_penalty
             loss_d.backward()
 
@@ -230,7 +230,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                     plt.savefig(viz_dir + '/predictions_{}.png'.format(step), dpi=300)
                     plt.close()
 
-                    # visualize abs error 
+                    # visualize abs error
                     abs_err = torch.abs(x_for - gen_x_for)
                     grid_abs_err = torchvision.utils.make_grid(abs_err[0:9, :, :, :].squeeze(1).cpu(), normalize=True, nrow=3)
                     plt.figure()
@@ -254,7 +254,7 @@ def trainer(args, train_loader, valid_loader, generator, discriminator,
                 #                   loss_valid.mean().item(),
                 #                   logging_step)
 
-                # save checkpoint 
+                # save checkpoint
                 PATH = args.experiment_dir + '/model_checkpoints/'
                 os.makedirs(PATH, exist_ok=True)
                 torch.save({'epoch': epoch,

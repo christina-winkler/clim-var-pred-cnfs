@@ -102,9 +102,12 @@ parser.add_argument("--condch", type=int, default=128//8,
                         help="# of residual-in-residual blocks in LR network.")
 
 # data
-parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
-                        help="Dataset to train the model on.")
-parser.add_argument("--trainset", type=str, default="temp",
+# parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
+#                         help="Dataset to train the model on.")
+parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
+                     help="Dataset to train the model on.")
+# parser.add_argument("--datadir", type=str, default="/home/mil
+parser.add_argument("--trainset", type=str, default="geop",
                         help="Dataset to train the model on.")
 
 args = parser.parse_args()
@@ -809,15 +812,17 @@ def metrics_eval_all(roll_len=30):
         avrg_rmse_16x, std_rmse_16x,_, _ = read_metrics('/experiments/flow-1-level-2-k_model_epoch_2_step_43750_geop_16x/{}/metric_results_normalized.txt'.format(roll_len))
         avrg_rmse_8x, std_rmse_8x,_, _ = read_metrics('/experiments/flow-2-level-2-k_model_epoch_2_step_41000_geop_8x/{}/metric_results_normalized.txt'.format(roll_len))
         avrg_rmse_4x, std_rmse_4x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_1_step_22750_geop_4x/{}/metric_results_normalized.txt'.format(roll_len))
+        # avrg_rmse_1x, std_rmse_1x, _ = read_metrics('/experiments/unet3d_geop_1x/{}/metric_results.txt'.format(roll_len)) # ToDO
         avrg_rmse_unet, std_rmse_unet,_, _ = read_metrics('/experiments/unet3d_geop_1x/{}/metric_results.txt'.format(roll_len))
+        avrg_rmse_3dgan, std_rmse_3dgan, _ = read_metrics('/experiments/3dgan_geop_1x/{}/metric_results.txt'.format(roll_len))
 
     elif args.trainset == 'temp':
         avrg_rmse_16x, std_rmse_16x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_5_step_3750_temp_16x/{}/metric_results_normalized.txt'.format(roll_len))
         avrg_rmse_8x, std_rmse_8x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_8_step_5500_temp_8x/{}/metric_results_normalized.txt'.format(roll_len))
         avrg_rmse_4x, std_rmse_4x,_, _ = read_metrics('/experiments/flow-3-level-2-k_model_epoch_7_step_4750_temp_4x/{}/metric_results_normalized.txt'.format(roll_len))
         avrg_rmse_unet, std_rmse_unet,_, _ = read_metrics('/experiments/unet3d_temp_1x/{}/metric_results.txt'.format(roll_len))
+        avrg_rmse_3dgan, std_rmse_3dgan, _ = read_metrics('/experiments/3dgan_geop_1x/{}/metric_results.txt'.format(roll_len)) # # TODO
 
-    # pdb.set_trace()
     avrg_rmse_16x = np.array(avrg_rmse_16x)
     error16x = np.array(std_rmse_16x)
 
@@ -883,7 +888,7 @@ if __name__ == "__main__":
 
     args.device = "cuda"
 
-    # metrics_eval_all()
+    metrics_eval_all()
 
     if args.ds or args.s > 1: # simulation run on downsampled / embedded representation
 
@@ -895,16 +900,16 @@ if __name__ == "__main__":
                 srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/srmodel_checkpoints/{}.tar'.format(srmodelname)
                 stmodelname = 'model_epoch_1_step_21250'
                 stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_2023_12_06_07_29_49/stmodel_checkpoints/{}.tar'.format(stmodelname)
-                
+
             elif args.s == 8:
                 srmodelname = 'model_epoch_0_step_6000'
                 srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(srmodelname)
                 stmodelname = 'model_epoch_0_step_6000'
                 stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(stmodelname)
-        
+
             # elif args.s == 16:
-            #    srmodelname = 
-            #    srmodelpath = 
+            #    srmodelname =
+            #    srmodelpath =
 
         if args.trainset == 'temp':
 
@@ -919,11 +924,11 @@ if __name__ == "__main__":
                 srmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(srmodelname)
                 stmodelname = 'model_epoch_0_step_6000'
                 stmodelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_geop_8x_2024_01_26_12_21_42/srmodel_checkpoints/{}.tar'.format(stmodelname)
-        
+
             # elif args.s == 16:
-            #    srmodelname = 
-            #    srmodelpath = 
-        
+            #    srmodelname =
+            #    srmodelpath =
+
         srmodel = srflow.SRFlow((in_channels, height, width), args.filter_size, 3, 2,
                                     args.bsz, args.s, args.nb, args.condch, args.nbits,
                                     args.noscale, args.noscaletest).to(args.device)
