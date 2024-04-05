@@ -35,7 +35,7 @@ def validate(model, val_loader, exp_name, logstep, args):
             # split time series into lags and prediction window
             x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
 
-            z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
+            z, state, nll, _ = model.forward(x=x_for, x_past=x_past, state=state)
 
             # Generative loss
             nll_list.append(nll.mean().detach().cpu().numpy())

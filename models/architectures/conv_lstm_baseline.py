@@ -17,8 +17,8 @@ import sys
 sys.path.append("../../")
 
 class StackedConvLSTM(nn.Module):
-    def __init__(self, num_channels, num_kernels=64,
-                 kernel_size=(3,3), num_layers=3):
+    def __init__(self, num_channels, num_kernels=128,
+                 kernel_size=(3,3), num_layers=6):
         """
         """
         super(StackedConvLSTM, self).__init__()
@@ -80,13 +80,13 @@ class ConvLSTM(nn.Module):
         for time_step in range(seq_len):
             h,c = self.convLSTMcell(x[:,:,time_step,:,:].unsqueeze(1),(h,c))
             output[:,:,time_step,:,:] = h.squeeze(2)
-        
+
         out = self.change_time(output.permute(0,2,1,3,4))
         return out
 
 class ConvLSTMCell(nn.Module):
 
-    def __init__(self, in_channels, hidden_channels, out_channels, padding=0, num_layers=5):
+    def __init__(self, in_channels, hidden_channels, out_channels, padding=0, num_layers=8):
         """
         Implements convolutional LSTM cell.
         Args:
@@ -150,7 +150,7 @@ class GatedConv(nn.Module):
 class GatedConvNet(nn.Module):
     # taken from: https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/tutorial11/NF_image_modeling.html
     # paper: https://arxiv.org/pdf/1612.08083v3.pdf
-    def __init__(self, c_in, c_hidden=4*128, c_out=-1, padding=1, num_layers=6):
+    def __init__(self, c_in, c_hidden=4*128, c_out=-1, padding=1, num_layers=8):
         """
         Module that summarizes the previous blocks to a full convolutional neural network.
         Inputs:

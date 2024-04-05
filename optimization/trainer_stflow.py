@@ -98,7 +98,7 @@ def trainer(args, train_loader, valid_loader, model,
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
 
     state=None
-    color = 'inferno' if args.trainset == 'era5' else 'viridis'
+    color = 'inferno' if args.trainset == 'temp' else 'viridis'
     model.to(device)
 
     params = sum(x.numel() for x in model.parameters() if x.requires_grad)

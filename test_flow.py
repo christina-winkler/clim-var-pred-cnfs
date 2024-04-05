@@ -322,7 +322,6 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
             rmse08.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
 
             # weighted RMSE
-            pdb.set_trace()
             w_rmse.append(metrics.weighted_RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm, latitude, longitude))
 
             print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
@@ -536,7 +535,6 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             plt.show()
             plt.tight_layout()
             plt.savefig(savedir + '/std_multiplot_{}.png'.format(batch_idx), dpi=300, bbox_inches='tight')
-            # plt.show()
             plt.close()
 
             # COMPUTE METRICS

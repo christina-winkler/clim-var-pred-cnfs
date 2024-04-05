@@ -477,17 +477,17 @@ class GaussianPrior(nn.Module):
                 self.y = y.detach()
                 mean, log_sigma = self.split2d_prior(z, h)
                 prior = torch.distributions.normal.Normal(loc=mean, scale=log_sigma)
-                import pdb; pdb.set_trace()
-                # logpz += prior.log_prob(y).sum(dim=[1,2,3,4])
-                logpz += prior.log_prob(y)
+                # import pdb; pdb.set_trace()
+                logpz += prior.log_prob(y).sum(dim=[1,2,3,4])
+                # logpz += prior.log_prob(y)
 
             else:
                 # print("Computing log probs final")
                 # final prior computation
                 mean, log_sigma = self.final_prior(h)
                 prior = torch.distributions.normal.Normal(loc=mean, scale=log_sigma)
-                # logpz += prior.log_prob(x).sum(dim=[1,2,3,4])
-                logpz += prior.log_prob(x)
+                logpz += prior.log_prob(x).sum(dim=[1,2,3,4])
+                # logpz += prior.log_prob(x)
                 self.y = x
                 z = x
 

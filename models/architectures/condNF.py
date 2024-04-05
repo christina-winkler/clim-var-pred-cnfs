@@ -186,7 +186,7 @@ class NormFlowNet(nn.Module):
 
                     elif isinstance(layer, modules.GaussianPrior):
                         # print("GaussianPrior")
-                        print(z.shape, h_shaped.shape)
+                        # print(z.shape, h_shaped.shape)
                         z, logdet, logpz = layer(z, logdet=logdet, logpz=logpz,
                                                  h=h_shaped,
                                                  eps=eps, reverse=False)
@@ -278,7 +278,7 @@ class FlowModel(nn.Module):
                                                      state=state)
         # Loss: Z'ks under Gaussian + sum_logdet
         # D =  float(np.log(2) * np.prod(x.size()[1:]))
-        nll = -(logdet + logp_z.sum(dim=[1,2,3,4])) #/ D
+        nll = -(logdet + logp_z ) #.sum(dim=[1,2,3,4])) #/ D
         return z, state, nll, logp_z
 
     def inverse_flow(self, x_past, state, z=None, eps=1.0, use_stored=False):

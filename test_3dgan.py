@@ -90,7 +90,9 @@ parser.add_argument("--condch", type=int, default=128,
                     help="# of residual-in-residual blocks in LR network.")
 
 # data
-parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
+# parser.add_argument("--datadir", type=str, default="/home/mila/c/christina.winkler/scratch/data",
+#                     help="Dataset to train the model on.")
+parser.add_argument("--datadir", type=str, default="/home/christina/Documents/climsim_ds/data",
                     help="Dataset to train the model on.")
 parser.add_argument("--trainset", type=str, default="geop",
                     help="Dataset to train the model on.")
@@ -243,58 +245,58 @@ def test(model, test_loader, exp_name, logstep, args):
 
             # Plot differences of rollout trajectories
             # from the same rollout different frames
-            test_diff0 = stack_pred_multiroll[0,1,:,...]-stack_pred_multiroll[0,2,:,...]
-            plt.figure()
-            plt.imshow(test_diff0.permute(1,2,0).cpu().numpy(), cmap=color)
-            plt.axis('off')
-            plt.title("test diff 0")
-            plt.savefig(savedir + "/tesdiff1_logstep_{}_test.png".format(batch_idx), dpi=300)
-            plt.close()
-
-            # same frames from different rollout - should be black
-            test_diff1 = stack_pred_multiroll[0,1,:,...]-stack_pred_multiroll[2,1,:,...]
-            plt.figure()
-            plt.imshow(test_diff1.permute(1, 2, 0).cpu().numpy(), cmap=color)
-            plt.axis('off')
-            plt.title("test diff 1")
-            plt.savefig(savedir + "/tesdiff2_logstep_{}_test.png".format(batch_idx), dpi=300)
-            # plt.show()
-            plt.close()
-
-            grid_ground_truth = torchvision.utils.make_grid(x_for[:,:,0,:,:].cpu(), nrow=1)
-            plt.figure()
-            plt.imshow(grid_ground_truth.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
-            plt.axis('off')
-            plt.title("Frame at t+1")
-            plt.savefig(savedir + "/x_t+1_logstep_{}.png".format(batch_idx), dpi=300)
-            plt.close()
-
-            stacked_pred, abs_err = create_rollout(model, x_for, x_past, rollout_len)
-
-            grid_trajec_preds = torchvision.utils.make_grid(stacked_pred.squeeze(1).cpu(), nrow=1)
-            plt.figure()
-            plt.imshow(grid_trajec_preds.permute(0,1,2)[0,:,:].contiguous(), cmap=color)
-            plt.axis('off')
-            plt.tight_layout()
-            plt.savefig(savedir + "/rolled_out_traj_test_step_{}.png".format(batch_idx), dpi=300)
-            plt.close()
-
-            grid_abs_err = torchvision.utils.make_grid(abs_err1.squeeze(1).cpu(), nrow=1)
-            plt.figure()
-            plt.imshow(grid_abs_err.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
-            plt.axis('off')
-            plt.tight_layout()
-            plt.savefig(savedir + "/absolute_error_test_step_{}.png".format(batch_idx), dpi=300)
-            plt.close()
-
-            # visualize past frames the prediction is based on (context)
-            grid_past = torchvision.utils.make_grid(x_past[:, -1, :, :].cpu(), nrow=3)
-            plt.figure()
-            plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
-            plt.axis('off')
-            plt.title("Frame at t")
-            plt.savefig(savedir + "/x_t_logstep_{}.png".format(batch_idx), dpi=300)
-            plt.close()
+            # test_diff0 = stack_pred_multiroll[0,1,:,...]-stack_pred_multiroll[0,2,:,...]
+            # plt.figure()
+            # plt.imshow(test_diff0.permute(1,2,0)[:,:,0].cpu().numpy(), cmap=color)
+            # plt.axis('off')
+            # plt.title("test diff 0")
+            # plt.savefig(savedir + "/tesdiff1_logstep_{}_test.png".format(batch_idx), dpi=300)
+            # plt.close()
+            #
+            # # same frames from different rollout - should be black
+            # test_diff1 = stack_pred_multiroll[0,1,:,...]-stack_pred_multiroll[2,1,:,...]
+            # plt.figure()
+            # plt.imshow(test_diff1.permute(1, 2, 0).cpu().numpy(), cmap=color)
+            # plt.axis('off')
+            # plt.title("test diff 1")
+            # plt.savefig(savedir + "/tesdiff2_logstep_{}_test.png".format(batch_idx), dpi=300)
+            # # plt.show()
+            # plt.close()
+            #
+            # grid_ground_truth = torchvision.utils.make_grid(x_for[:,:,0,:,:].cpu(), nrow=1)
+            # plt.figure()
+            # plt.imshow(grid_ground_truth.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+            # plt.axis('off')
+            # plt.title("Frame at t+1")
+            # plt.savefig(savedir + "/x_t+1_logstep_{}.png".format(batch_idx), dpi=300)
+            # plt.close()
+            #
+            # stacked_pred, abs_err = create_rollout(model, x_for, x_past, rollout_len)
+            #
+            # grid_trajec_preds = torchvision.utils.make_grid(stacked_pred.squeeze(1).cpu(), nrow=1)
+            # plt.figure()
+            # plt.imshow(grid_trajec_preds.permute(0,1,2)[0,:,:].contiguous(), cmap=color)
+            # plt.axis('off')
+            # plt.tight_layout()
+            # plt.savefig(savedir + "/rolled_out_traj_test_step_{}.png".format(batch_idx), dpi=300)
+            # plt.close()
+            #
+            # grid_abs_err = torchvision.utils.make_grid(abs_err1.squeeze(1).cpu(), nrow=1)
+            # plt.figure()
+            # plt.imshow(grid_abs_err.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+            # plt.axis('off')
+            # plt.tight_layout()
+            # plt.savefig(savedir + "/absolute_error_test_step_{}.png".format(batch_idx), dpi=300)
+            # plt.close()
+            #
+            # # visualize past frames the prediction is based on (context)
+            # grid_past = torchvision.utils.make_grid(x_past[:, -1, :, :].cpu(), nrow=3)
+            # plt.figure()
+            # plt.imshow(grid_past.permute(1, 2, 0)[:,:,0].contiguous(), cmap=color)
+            # plt.axis('off')
+            # plt.title("Frame at t")
+            # plt.savefig(savedir + "/x_t_logstep_{}.png".format(batch_idx), dpi=300)
+            # plt.close()
 
 
     print("Average Test MSE-Loss:", np.mean(loss_list))
@@ -318,7 +320,9 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
     # psnr = [0] * args.bsz
     # mmd = [0] * args.bsz
     # emd = [0] * args.bsz
-    norm_rmse = [] 
+    norm_rmse = []
+    mae = []
+    norm_mae = []
     rmse = []
     w_rmse = []
 
@@ -330,6 +334,8 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
         for batch_idx, item in enumerate(test_loader):
 
             x = item[0]
+
+            print('IDX', batch_idx)
 
             # split time series into context and prediction window
             x_past, x_for = x[:,:, :2,...].to('cuda'), x[:,:,2:,...].to('cuda')
@@ -361,21 +367,29 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             # print(psnr[0], "  ", ssim[0])
 
             # RMSE
-            latitude, longitude = item[3], item[4]
+            # import pdb; pdb.set_trace()
+            # latitude, longitude = item[2], item[3]
             x_for_new = item[1][:,2:,...].to('cuda')
+
             if args.trainset == 'temp':
                 inv_scaler = InverseMinMaxScaler()
                 x_new = inv_scaler(stacked_pred).squeeze(1)
 
-            if args.trainset == 'geop':     
+            if args.trainset == 'geop':
                 x_new = stacked_pred * (x_for_new.max() - x_for_new.min()) + x_for_new.min()
 
-                      
-            w_rmse.append(metrics.weighted_RMSE(x_new.cpu(), x_for_new.cpu(), latitude, longitude))
-            # pdb.set_trace()
+            # RMSE
             print(metrics.RMSE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
             norm_rmse.append(metrics.RMSE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
-            rmse.append(metrics.RMSE(x_new, x_for_new.cuda()).mean(1).detach().cpu().numpy())
+            rmse.append(metrics.RMSE(x_new.unsqueeze(1), x_for_new.unsqueeze(1).cuda()).mean(1).detach().cpu().numpy())
+
+            # weighted RMSE
+            # w_rmse.append(metrics.weighted_RMSE(x_new.cpu(), x_for_new.cpu(), latitude, longitude))
+
+            # MAE
+            print(metrics.MAE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
+            mae.append(metrics.MAE(x_new.unsqueeze(1), x_for_new.unsqueeze(1).cuda()).mean(1).detach().cpu().numpy())
+            norm_mae.append(metrics.MAE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
 
             if batch_idx == 100:
                 print(batch_idx)
@@ -436,10 +450,10 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             # f.write('Avrg PSNR over forecasting period:\n')
             # for item in avrg_psnr:
             #     f.write("%f \n" % item)
-
+            # import pdb; pdb.set_trace()
             f.write('Avrg RMSE:\n')
             for item in np.mean(rmse, axis=0):
-                f.write("%f \n" % item)  
+                f.write("%f \n" % item)
 
             f.write('STD RMSE:\n')
             for item in np.std(rmse, axis=0):
@@ -447,10 +461,26 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
 
             f.write('Norm Avrg RMSE:\n')
             for item in np.mean(norm_rmse, axis=0):
-                f.write("%f \n" % item)  
+                f.write("%f \n" % item)
 
             f.write('Norm STD RMSE:\n')
             for item in np.std(norm_rmse, axis=0):
+                f.write("%f \n" % item)
+
+            f.write('Norm Avrg MAE:\n')
+            for item in np.mean(norm_mae, axis=0):
+                f.write("%f \n" % item)
+
+            f.write('Norm STD MAE:\n')
+            for item in np.std(norm_mae, axis=0):
+                f.write("%f \n" % item)
+
+            f.write('Avrg MAE:\n')
+            for item in np.mean(mae, axis=0):
+                f.write("%f \n" % item)
+
+            f.write('STD MAE:\n')
+            for item in np.std(mae, axis=0):
                 f.write("%f \n" % item)
 
             # f.write('Avrg MMD over forecasting period:\n')
@@ -463,6 +493,7 @@ if __name__ == "__main__":
 
     # Load testset
     _, _, test_loader, args = dataloading.load_data(args)
+
     in_channels = next(iter(test_loader))[0].shape[1]
     height, width = next(iter(test_loader))[0].shape[3], next(iter(test_loader))[0].shape[4]
 
@@ -472,14 +503,15 @@ if __name__ == "__main__":
     if args.trainset == 'temp':
         # temperature
         exp_name = '3dgan_temp_no_ds__2024_03_26_15_57_39'
-        modelname = 'generator_epoch_1_step_750.tar'
-        modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/3dgan_temp_no_ds__2024_03_26_15_57_39/model_checkpoints/{}'.format(modelname)
+        # modelname = 'generator_epoch_2_step_1500.tar'
+        modelname = 'generator_epoch_54_step_36500.tar'
+        modelpath = '/home/christina/Documents/climsim_ds/runs/{}/model_checkpoints/{}'.format(exp_name, modelname)
 
     elif args.trainset == 'geop':
         # geopotential
         exp_name = '3dgan_geop_no_ds__2024_03_26_15_57_26'
-        modelname = 'generator_epoch_1_step_25000.tar'
-        modelpath = "/home/mila/c/christina.winkler/climsim_ds/runs/{}/model_checkpoints/{}".format(exp_name, modelname)
+        modelname = 'generator_epoch_1_step_25250.tar'
+        modelpath = "/home/christina/Documents/climsim_ds/runs/{}/model_checkpoints/{}".format(exp_name, modelname)
 
     model = threedgan.Generator(in_c=args.lag_len, out_c=1, height=height, width=width).cuda()
     ckpt = torch.load(modelpath)
@@ -490,5 +522,5 @@ if __name__ == "__main__":
     print('Nr of Trainable Params on {}:  '.format('cuda'), params)
     print("Evaluate 3DGAN on test split ...")
 
-    test(model.cuda(), test_loader, exp_name, -99999, args)
-    # metrics_eval(model.cuda(),test_loader, exp_name, modelname, -99999)
+    # test(model.cuda(), test_loader, exp_name, -99999, args)
+    metrics_eval(model.cuda(),test_loader, exp_name, modelname, -99999)

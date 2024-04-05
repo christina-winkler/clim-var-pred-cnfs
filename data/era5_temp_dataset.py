@@ -99,17 +99,16 @@ class ERA5T2MData(Dataset):
         latitude = np.array(y.coords['latitude'])
         longitude = np.array(y.coords['longitude'])
 
-
         if self.s > 1: # resize frames to smaller resolution
             x_resh = np.zeros((y.shape[0], y.shape[1]//self.s, y.shape[2]//self.s))
             for i in range(self.window_size+1):
                 x_resh[i,...] = resize(y[i,...], (y.shape[1]//self.s, y.shape[2]//self.s), anti_aliasing=True)
             x=x_resh
-            return self.transform_x(x).permute(1,2,0).unsqueeze(0).float(), str(time), latitude, longitude
+            return self.transform_x(x).permute(1,2,0).unsqueeze(0).float(), torch.FloatTensor(x), latitude, longitude
 
         else: # operate on original input resolution
             return torch.FloatTensor(y), str(time), latitude, longitude
-        
+
 
 # datashape = ERA5T2MData('/home/christina/Documents/research/auto-encoding-normalizing-flows/code/data/ftp.bgc-jena.mpg.de/pub/outgoing/aschall/data.zarr')[0][0].shape
 # temperatures, time = ERA5T2MData('/home/christina/Documents/research/auto-encoding-normalizing-flows/code/data/ftp.bgc-jena.mpg.de/pub/outgoing/aschall/data.zarr')[0]
