@@ -19,12 +19,12 @@ import sys
 sys.path.append("../../")
 
 # seeding only for debugging
-random.seed(0)
-torch.manual_seed(0)
-np.random.seed(0)
-
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+# random.seed(0)
+# torch.manual_seed(0)
+# np.random.seed(0)
+#
+# torch.backends.cudnn.deterministic = True
+# torch.backends.cudnn.benchmark = False
 
 def trainer(args, train_loader, valid_loader, model,
             device='cpu', needs_init=True):
@@ -81,7 +81,7 @@ def trainer(args, train_loader, valid_loader, model,
                                             logdet=0)
 
 
-            # pdb.set_trace()                                
+            # pdb.set_trace()
 
             out = model.forward(x_past)
             mse_loss = mse(out, x_for)

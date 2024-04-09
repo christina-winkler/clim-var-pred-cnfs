@@ -19,7 +19,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import argparse
 import pdb
 
-from models.architectures import unet3d, conv_lstm_baseline
+from models.architectures import conv_lstm_baseline0, conv_lstm_baseline
 from data import dataloading
 from utils import metrics
 from operator import add
@@ -434,6 +434,22 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
         # plt.savefig(savedir + 'plots/avrg_mmd.png', dpi=300)
         # plt.close()
 
+        if args.trainset == 'geop':
+            mean_rmse = np.mean(rmse, axis=0)[0]
+            std_rmse = np.std(rmse, axis=0)[0]
+            mean_norm_rmse = np.mean(norm_rmse, axis=0)[0]
+            std_norm_rmse = np.std(norm_rmse, axis=0)[0]
+            mean_mae = np.mean(mae, axis=0)[0]
+            std_mae = np.std(mae, axis=0)[0]
+
+        else:
+            mean_rmse = np.mean(rmse, axis=0)
+            std_rmse = np.std(rmse, axis=0)
+            mean_norm_rmse = np.mean(norm_rmse, axis=0)
+            std_norm_rmse = np.std(norm_rmse, axis=0)
+            mean_mae = np.mean(mae, axis=0)
+            std_mae = np.std(mae, axis=0)
+
         # Write metric results to a file in case to recreate plots
         with open(savedir + 'metric_results.txt','w') as f:
             # f.write('Avrg SSIM over forecasting period:\n')
@@ -443,13 +459,12 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             # f.write('Avrg PSNR over forecasting period:\n')
             # for item in avrg_psnr:
             #     f.write("%f \n" % item)
-
             f.write('Avrg RMSE:\n')
-            for item in np.mean(rmse, axis=0):
+            for item in mean_rmse:
                 f.write("%f \n" % item)
 
             f.write('STD RMSE:\n')
-            for item in np.std(rmse, axis=0):
+            for item in std_rmse:
                 f.write("%f \n" % item)
 
             f.write('Norm Avrg RMSE:\n')
@@ -469,13 +484,12 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
                 f.write("%f \n" % item)
 
             f.write('Avrg MAE:\n')
-            for item in np.mean(mae, axis=0):
+            for item in mean_mae:
                 f.write("%f \n" % item)
 
             f.write('STD MAE:\n')
-            for item in np.std(mae, axis=0):
+            for item in std_mae:
                 f.write("%f \n" % item)
-
 
             # f.write('Avrg MMD over forecasting period:\n')
             # for item in avrg_mmd:
@@ -497,6 +511,10 @@ if __name__ == "__main__":
         exp_name = 'convlstm_temp_2024_04_04_22_56_34'
         modelname = 'model_epoch_41_step_27600.tar'
         modelpath = '/home/christina/Documents/climsim_ds/runs/{}/model_checkpoints/{}'.format(exp_name, modelname)
+        model = conv_lstm_baseline.ConvLSTM(in_channels=in_channels, hidden_channels=4*32, out_channels=1).cuda()
+        ckpt = torch.load(modelpath)
+        model.load_state_dict(ckpt['model_state_dict'])
+        model.eval()
 
     elif args.trainset == 'geop':
         # Load testset
@@ -508,10 +526,10 @@ if __name__ == "__main__":
         modelname = 'model_epoch_1_step_31100.tar'
         modelpath = "/home/christina/Documents/climsim_ds/runs/{}/model_checkpoints/{}".format(exp_name, modelname)
 
-    model = conv_lstm_baseline.ConvLSTM(in_channels=in_channels, hidden_channels=4*32, out_channels=1).cuda()
-    ckpt = torch.load(modelpath)
-    model.load_state_dict(ckpt['model_state_dict'])
-    model.eval()
+        model = conv_lstm_baseline0.ConvLSTM(in_channels=in_channels, hidden_channels=4*32, out_channels=1).cuda()
+        ckpt = torch.load(modelpath)
+        model.load_state_dict(ckpt['model_state_dict'])
+        model.eval()
 
     params = sum(x.numel() for x in model.parameters() if x.requires_grad)
     print('Nr of Trainable Params on {}:  '.format('cuda'), params)

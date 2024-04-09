@@ -29,6 +29,7 @@ class ActNorm(nn.Module):
     def __init__(self, num_features, logscale_factor=1.0, scale=1.0, testmode=False):
         super(ActNorm, self).__init__()
 
+
         self.initialized = True if testmode else False
         # self.testmode = testmode
 

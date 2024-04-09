@@ -391,7 +391,7 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             mae.append(metrics.MAE(x_new.unsqueeze(1), x_for_new.unsqueeze(1).cuda()).mean(1).detach().cpu().numpy())
             norm_mae.append(metrics.MAE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
 
-            if batch_idx == 100:
+            if batch_idx == 1:
                 print(batch_idx)
                 break
 
@@ -441,6 +441,22 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
         # plt.savefig(savedir + 'plots/avrg_mmd.png', dpi=300)
         # plt.close()
 
+        if args.trainset == 'geop':
+            mean_rmse = np.mean(rmse, axis=0)[0]
+            std_rmse = np.std(rmse, axis=0)[0]
+            mean_norm_rmse = np.mean(norm_rmse, axis=0)[0]
+            std_norm_rmse = np.std(norm_rmse, axis=0)[0]
+            mean_mae = np.mean(mae, axis=0)[0]
+            std_mae = np.std(mae, axis=0)[0]
+
+        else:
+            mean_rmse = np.mean(rmse, axis=0)
+            std_rmse = np.std(rmse, axis=0)
+            mean_norm_rmse = np.mean(norm_rmse, axis=0)
+            std_norm_rmse = np.std(norm_rmse, axis=0)
+            mean_mae = np.mean(mae, axis=0)
+            std_mae = np.std(mae, axis=0)
+
         # Write metric results to a file in case to recreate plots
         with open(savedir + 'metric_results.txt','w') as f:
             # f.write('Avrg SSIM over forecasting period:\n')
@@ -450,13 +466,12 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
             # f.write('Avrg PSNR over forecasting period:\n')
             # for item in avrg_psnr:
             #     f.write("%f \n" % item)
-            # import pdb; pdb.set_trace()
             f.write('Avrg RMSE:\n')
-            for item in np.mean(rmse, axis=0):
+            for item in mean_rmse:
                 f.write("%f \n" % item)
 
             f.write('STD RMSE:\n')
-            for item in np.std(rmse, axis=0):
+            for item in std_rmse:
                 f.write("%f \n" % item)
 
             f.write('Norm Avrg RMSE:\n')
@@ -476,16 +491,12 @@ def metrics_eval(model, test_loader, exp_name, modelname, logstep):
                 f.write("%f \n" % item)
 
             f.write('Avrg MAE:\n')
-            for item in np.mean(mae, axis=0):
+            for item in mean_mae:
                 f.write("%f \n" % item)
 
             f.write('STD MAE:\n')
-            for item in np.std(mae, axis=0):
+            for item in std_mae:
                 f.write("%f \n" % item)
-
-            # f.write('Avrg MMD over forecasting period:\n')
-            # for item in avrg_mmd:
-            #     f.write("%f \n" % item)
 
         return None
 

@@ -138,7 +138,7 @@ def create_rollout(model, x_for, x_past, lead_time):
 
     # Obtain the initial prediction, state, and ignore third output
     past = x_past[0, :, :, :, :].unsqueeze(0)
-    init_pred, s, _ = stmodel._predict(x_past=past, state=None, eps=0.8)
+    init_pred, s, _ = model._predict(x_past=past, state=None, eps=0.8)
 
     # Append the initial prediction to the sequence
     predictions.append(init_pred[0, :, :, :, :])
@@ -169,7 +169,7 @@ def create_rollout(model, x_for, x_past, lead_time):
     # Compute absolute error images
     abs_err = torch.abs(stacked_pred.cuda() - x_for[:, ...].cuda().squeeze(1))
 
-    return stacked_pred, abs_err, nll
+    return stacked_pred, abs_err
 
 
 def test(model, test_loader, exp_name, modelname, logstep, args):
@@ -180,46 +180,42 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
     rmse08 = []
     rmse08unorm = []
     mae08unorm = []
+
+    norm_rmse = []
+    mae = []
+    norm_mae = []
+    rmse = []
     w_rmse = []
+
     avrg_fwd_time = []
     avrg_bw_time = []
     model.eval()
-    color = 'inferno' if args.trainset == 'era5' else 'viridis'
-    savedir = "experiments/{}_{}_{}_nods/snapshots/test_set".format(exp_name, modelname, args.trainset)
+    color = 'inferno' if args.trainset == 'temp' else 'viridis'
+
+    savedir = os.getcwd() + '/runs/{}/test/metrics/'.format(exp_name)
     os.makedirs(savedir, exist_ok=True)
-    savedir_txt = 'experiments/{}_{}_{}_nods/'.format(exp_name, modelname, args.trainset)
-    os.makedirs(savedir_txt, exist_ok=True)
 
     with torch.no_grad():
         for batch_idx, item in enumerate(test_loader):
 
             x = item[0].to(args.device)
-            latitude, longitude = item[3], item[4]
+            # latitude, longitude = item[3], item[4]
 
             x_unorm = item[1].to(args.device)
 
             x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
-            x_past_unorm, x_for_unorm = x_unorm[:,:2,...], x_unorm[:,2:,...]
-
-            x_resh = F.interpolate(x[:,0,...], (x_for.shape[3]//args.s, x_for.shape[4]//args.s))
+            # x_past_unorm, x_for_unorm = x_unorm[:,:2,...], x_unorm[:,2:,...]
 
             start = timeit.default_timer()
 
-            # split time series into lags and prediction window
-            x_past_lr, x_for_lr = x_resh[:,:2,...], x_resh[:,2:,...]
-
-            # reshape into correct format [bsz, num_channels, seq_len, height, width]
-            x_past_lr = x_past_lr.unsqueeze(1).contiguous().float()
-            x_for_lr = x_for_lr.unsqueeze(1).contiguous().float()
-
-            z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
+            z, state, *_ = model.forward(x=x_for, x_past=x_past, state=state)
 
             stop = timeit.default_timer()
             print("Time Fwd pass:", stop-start)
             avrg_fwd_time.append(stop-start)
 
             # Generative loss
-            nll_list.append(nll.mean().detach().cpu().numpy())
+            # nll_list.append(nll.mean().detach().cpu().numpy())
 
             # ---------------------- Evaluate Predictions---------------------- #
 
@@ -236,7 +232,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
             start = timeit.default_timer()
             past = x_past[0,:,:,:,:].unsqueeze(0)
-            x, s = model._predict(x_past=past,
+            x, s, *_ = model._predict(x_past=past,
                                   state=None, eps=eps)
 
             stop = timeit.default_timer()
@@ -246,10 +242,10 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
 
             # create multiple rollouts with same initial conditions
             nr_of_rollouts = 4
-            stacked_pred1, abs_err1 = create_rollout(model, x, x_for, x_past, s, rollout_len)
-            stacked_pred2, abs_err2 = create_rollout(model, x, x_for, x_past, s, rollout_len)
-            stacked_pred3, abs_err3 = create_rollout(model, x, x_for, x_past, s, rollout_len)
-            stacked_pred4, abs_err4 = create_rollout(model, x, x_for, x_past, s, rollout_len)
+            stacked_pred1, abs_err1 = create_rollout(model, x_for, x_past, rollout_len)
+            stacked_pred2, abs_err2 = create_rollout(model, x_for, x_past, rollout_len)
+            stacked_pred3, abs_err3 = create_rollout(model, x_for, x_past, rollout_len)
+            stacked_pred4, abs_err4 = create_rollout(model, x_for, x_past, rollout_len)
 
             std = (abs_err1 **2 + abs_err2**2 + abs_err3**2 + abs_err4**2)/4
             stack_pred_multiroll = torch.stack((stacked_pred1,stacked_pred2,stacked_pred3,stacked_pred4), dim=0)
@@ -257,7 +253,7 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
             stack_abserr_multiroll = torch.stack((abs_err1,abs_err2,abs_err3,abs_err4),dim=0)
 
             # create single rollout
-            stacked_pred, abs_err = create_rollout(model, x, x_for, x_past, s, rollout_len)
+            stacked_pred, abs_err = create_rollout(model, x_for, x_past, rollout_len)
 
             # compute absolute difference among frames from multi rollout
 
@@ -312,56 +308,89 @@ def test(model, test_loader, exp_name, modelname, logstep, args):
             # plt.show()
             plt.close()
 
-            # COMPUTE METRICS
-            # MAE
-            mae08unorm.append(metrics.MAE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
-            mae08.append(metrics.MAE(stack_pred_multiroll[2,...], x_for.squeeze(1)).detach().cpu().numpy())
+            x_for_new = item[1][:,2:,...].to('cuda')
+
+            if args.trainset == 'temp':
+                inv_scaler = InverseMinMaxScaler()
+                x_new = inv_scaler(stacked_pred).squeeze(1)
+
+            if args.trainset == 'geop':
+                x_new = stacked_pred * (x_for_new.max() - x_for_new.min()) + x_for_new.min()
 
             # RMSE
-            rmse08unorm.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
-            rmse08.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
+            norm_rmse.append(metrics.RMSE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
+            rmse.append(metrics.RMSE(x_new.unsqueeze(1), x_for_new.unsqueeze(1).cuda()).mean(1).detach().cpu().numpy())
 
             # weighted RMSE
-            w_rmse.append(metrics.weighted_RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm, latitude, longitude))
+            # w_rmse.append(metrics.weighted_RMSE(x_new.cpu(), x_for_new.cpu(), latitude, longitude))
 
-            print(rmse08unorm[0], mae08unorm[0], rmse08[0], mae08[0])
+            # MAE
+            mae.append(metrics.MAE(x_new.unsqueeze(1), x_for_new.unsqueeze(1).cuda()).mean(1).detach().cpu().numpy())
+            norm_mae.append(metrics.MAE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
 
-            if batch_idx == 150:
+            # weighted RMSE
+            # w_rmse.append(metrics.weighted_RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm, latitude, longitude))
+
+            if batch_idx == 100:
                 break
 
-    # write results to file:
-    with open(savedir_txt + 'nll_and_runtimes.txt','w') as f:
-        f.write('Avrg NLL: %d \n'% np.mean(nll_list))
-        f.write('Avrg fwd. runtime: %.2f \n'% np.mean(avrg_fwd_time))
-        f.write('Avrg bw runtime: %.2f'% np.mean(avrg_bw_time))
+        if args.trainset == 'geop':
+            mean_rmse = np.mean(rmse, axis=0)[0]
+            std_rmse = np.std(rmse, axis=0)[0]
+            mean_norm_rmse = np.mean(norm_rmse, axis=0)[0]
+            std_norm_rmse = np.std(norm_rmse, axis=0)[0]
+            mean_mae = np.mean(mae, axis=0)[0]
+            std_mae = np.std(mae, axis=0)[0]
 
-    with open(savedir_txt + 'metric_results.txt','w') as f:
+        else:
+            mean_rmse = np.mean(rmse, axis=0)
+            std_rmse = np.std(rmse, axis=0)
+            mean_norm_rmse = np.mean(norm_rmse, axis=0)
+            std_norm_rmse = np.std(norm_rmse, axis=0)
+            mean_mae = np.mean(mae, axis=0)
+            std_mae = np.std(mae, axis=0)
 
-        f.write('Avrg MAE mu08:\n')
-        for item in np.mean(mae08unorm, axis=0):
-            f.write("%f \n" % item)
+        # Write metric results to a file in case to recreate plots
+        with open(savedir + 'metric_results.txt','w') as f:
+            # f.write('Avrg SSIM over forecasting period:\n')
+            # for item in avrg_ssim:
+            #     f.write("%f \n" % item)
+            #
+            # f.write('Avrg PSNR over forecasting period:\n')
+            # for item in avrg_psnr:
+            #     f.write("%f \n" % item)
+            f.write('Avrg RMSE:\n')
+            for item in mean_rmse:
+                f.write("%f \n" % item)
 
-        f.write('Avrg RMSE mu08:\n')
-        for item in np.mean(rmse08unorm, axis=0):
-            f.write("%f \n" % item)
+            f.write('STD RMSE:\n')
+            for item in std_rmse:
+                f.write("%f \n" % item)
 
-        # f.write("%f \n" %np.std(rmse08, axis=0))
+            f.write('Norm Avrg RMSE:\n')
+            for item in np.mean(norm_rmse, axis=0):
+                f.write("%f \n" % item)
 
-        f.write('Norm Avrg MAE mu08:\n')
-        for item in np.mean(mae08, axis=0):
-            f.write("%f \n" % item)
+            f.write('Norm STD RMSE:\n')
+            for item in np.std(norm_rmse, axis=0):
+                f.write("%f \n" % item)
 
-        f.write('Norm STD MAE mu08:\n')
-        for item in np.std(mae08, axis=0):
-            f.write("%f \n" % item)
+            f.write('Norm Avrg MAE:\n')
+            for item in np.mean(norm_mae, axis=0):
+                f.write("%f \n" % item)
 
-        f.write('Norm Avrg RMSE mu08:\n')
-        for item in np.mean(rmse08, axis=0):
-            f.write("%f \n" % item)
+            f.write('Norm STD MAE:\n')
+            for item in np.std(norm_mae, axis=0):
+                f.write("%f \n" % item)
 
-        f.write('Norm STD RMSE mu08:\n')
-        for item in np.std(rmse08, axis=0):
-            f.write("%f \n" % item)
+            f.write('Avrg MAE:\n')
+            for item in mean_mae:
+                f.write("%f \n" % item)
+
+            f.write('STD MAE:\n')
+            for item in std_mae:
+                f.write("%f \n" % item)
+
 
         # f.write("%f \n" %np.mean(mae08unorm, axis=0))
         # f.write("%f \n" %np.std(mae08unorm, axis=0))
@@ -396,13 +425,8 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
     # Choose color map based on the dataset
     color = 'viridis' if args.trainset == 'geop' else 'inferno'
 
-    # Directory for saving snapshots of the test set
-    savedir = "experiments/{}_{}_{}_{}x/{}/snapshots/".format(exp_name, stmodelname, args.trainset, args.s, args.bsz)
+    savedir = os.getcwd() + '/runs/{}/test/snaphots/'.format(exp_name)
     os.makedirs(savedir, exist_ok=True)
-
-    # Directory for saving experiment details
-    savedir_txt = 'experiments/{}_{}_{}_{}x/{}/'.format(exp_name, stmodelname, args.trainset, args.s, args.bsz)
-    os.makedirs(savedir_txt, exist_ok=True)
 
     # Set both models to evaluation mode and disable gradient computation
     srmodel.eval()
@@ -538,69 +562,80 @@ def test_with_ds(srmodel, stmodel, test_loader, exp_name, srmodelname, stmodelna
             plt.close()
 
             # COMPUTE METRICS
-            # MAE
-            mae08unorm.append(metrics.MAE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
-            mae08.append(metrics.MAE(stack_pred_multiroll[2,...], x_for.squeeze(1)).detach().cpu().numpy())
-
             # RMSE
-            rmse08unorm.append(metrics.RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
-            rmse08.append(metrics.RMSE(stack_pred_multiroll[0,...], x_for.squeeze(1)).detach().cpu().numpy())
+            norm_rmse.append(metrics.RMSE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
+            rmse.append(metrics.RMSE(x_new.unsqueeze(1), x_for_new.unsqueeze(1).cuda()).mean(1).detach().cpu().numpy())
 
             # weighted RMSE
-            w_rmse.append(metrics.weighted_RMSE(inv_scaler(stack_pred_multiroll[0,...], min_value=x_for_unorm.min(), max_value=x_for_unorm.max()).cpu(),x_for_unorm.cpu(), latitude, longitude))
+            # w_rmse.append(metrics.weighted_RMSE(x_new.cpu(), x_for_new.cpu(), latitude, longitude))
+
+            # MAE
+            mae.append(metrics.MAE(x_new.unsqueeze(1), x_for_new.unsqueeze(1).cuda()).mean(1).detach().cpu().numpy())
+            norm_mae.append(metrics.MAE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
 
             # NLL
             nll_st_08.append(nll_st_1)
 
-            print('Unorm RMSE, MAE score', rmse08unorm[0].mean(), mae08unorm[0].mean())
-            print('Norm RMSE, MAE score:', rmse08[0].mean(), mae08[0].mean())
-
-            if batch_idx == 150:
+            if batch_idx == 1:
                 break
 
-            # TODO add CRPS score
+        if args.trainset == 'geop':
+            mean_rmse = np.mean(rmse08, axis=0)[0]
+            std_rmse = np.std(rmse08, axis=0)[0]
+            mean_norm_rmse = np.mean(norm_rmse, axis=0)[0]
+            std_norm_rmse = np.std(norm_rmse, axis=0)[0]
+            mean_mae = np.mean(mae, axis=0)[0]
+            std_mae = np.std(mae, axis=0)[0]
 
-    # write results to file:
-    with open(savedir_txt + 'nll_and_runtimes.txt','w') as f:
-        # f.write('Avrg NLL: %d \n'% np.mean(nll_list))
-        f.write('Avrg fwd. runtime: %.2f \n'% np.mean(avrg_fwd_time))
-        f.write('Avrg bw runtime: %.2f'% np.mean(avrg_bw_time))
+        else:
+            mean_rmse = np.mean(rmse, axis=0)
+            std_rmse = np.std(rmse, axis=0)
+            mean_norm_rmse = np.mean(norm_rmse, axis=0)
+            std_norm_rmse = np.std(norm_rmse, axis=0)
+            mean_mae = np.mean(mae, axis=0)
+            std_mae = np.std(mae, axis=0)
 
-    with open(savedir_txt + 'metric_results.txt','w') as f:
+        # Write metric results to a file in case to recreate plots
+        with open(savedir + 'metric_results.txt','w') as f:
+            # f.write('Avrg SSIM over forecasting period:\n')
+            # for item in avrg_ssim:
+            #     f.write("%f \n" % item)
+            #
+            # f.write('Avrg PSNR over forecasting period:\n')
+            # for item in avrg_psnr:
+            #     f.write("%f \n" % item)
+            f.write('Avrg RMSE:\n')
+            for item in mean_rmse:
+                f.write("%f \n" % item)
 
-        f.write('Avrg MAE mu08:\n')
-        for item in np.mean(mae08unorm, axis=0):
-            f.write("%f \n" % item)
+            f.write('STD RMSE:\n')
+            for item in std_rmse:
+                f.write("%f \n" % item)
 
-        f.write('Avrg RMSE mu08:\n')
-        for item in np.mean(rmse08unorm, axis=0):
-            f.write("%f \n" % item)
+            f.write('Norm Avrg RMSE:\n')
+            for item in np.mean(norm_rmse, axis=0):
+                f.write("%f \n" % item)
 
-        # f.write("%f \n" %np.std(rmse08, axis=0))
+            f.write('Norm STD RMSE:\n')
+            for item in np.std(norm_rmse, axis=0):
+                f.write("%f \n" % item)
 
-        f.write('Norm Avrg MAE mu08:\n')
-        for item in np.mean(mae08, axis=0):
-            f.write("%f \n" % item)
+            f.write('Norm Avrg MAE:\n')
+            for item in np.mean(norm_mae, axis=0):
+                f.write("%f \n" % item)
 
-        f.write('Norm STD MAE mu08:\n')
-        for item in np.std(mae08, axis=0):
-            f.write("%f \n" % item)
+            f.write('Norm STD MAE:\n')
+            for item in np.std(norm_mae, axis=0):
+                f.write("%f \n" % item)
 
-        f.write('Norm Avrg RMSE mu08:\n')
-        for item in np.mean(rmse08, axis=0):
-            f.write("%f \n" % item)
+            f.write('Avrg MAE:\n')
+            for item in mean_mae:
+                f.write("%f \n" % item)
 
-        f.write('Norm STD RMSE mu08:\n')
-        for item in np.std(rmse08, axis=0):
-            f.write("%f \n" % item)
+            f.write('STD MAE:\n')
+            for item in std_mae:
+                f.write("%f \n" % item)
 
-        f.write('STD NLL:\n')
-        for item in np.std(nll_st_08, axis=0):
-            f.write("%f \n" % item)
-
-        f.write('MEAN NLL:\n')
-        for item in np.mean(nll_st_08, axis=0):
-            f.write("%f \n" % item)
 
     return None #np.mean(nll_list)
 
@@ -620,7 +655,7 @@ def metrics_eval(args, model, test_loader, exp_name, modelname, logstep):
     state = None
 
     # creat and save metric plots
-    savedir = "experiments/{}/plots/test_set_{}/".format(exp_name, args.trainset)
+    savedir = os.getcwd() + '/runs/{}/test/snaphots/'.format(exp_name)
     os.makedirs(savedir, exist_ok=True)
 
     model.eval()
@@ -632,13 +667,13 @@ def metrics_eval(args, model, test_loader, exp_name, modelname, logstep):
 
             # split time series into lags and prediction window
             x_past, x_for = x[:,:, :2,...], x[:,:,2:,...]
-            x_past_unorm, x_for_unorm = x_unorm[:,:-1,...].float().cuda(), x_unorm[:,-1,:,:,:].unsqueeze(1).cuda().float()
+            # x_past_unorm, x_for_unorm = x_unorm[:,:-1,...].float().cuda(), x_unorm[:,-1,:,:,:].unsqueeze(1).cuda().float()
+            #
+            # x_past = x_past.permute(0,2,1,3,4).contiguous().float().to(args.device)
+            # x_for = x_for.permute(0,2,1,3,4).contiguous().float().to(args.device)
+            # x_for_unorm = x_for_unorm.permute(0,2,1,3,4).contiguous().float().to(args.device)
 
-            x_past = x_past.permute(0,2,1,3,4).contiguous().float().to(args.device)
-            x_for = x_for.permute(0,2,1,3,4).contiguous().float().to(args.device)
-            x_for_unorm = x_for_unorm.permute(0,2,1,3,4).contiguous().float().to(args.device)
-
-            z, state, nll = model.forward(x=x_for, x_past=x_past, state=state)
+            z, state, nll, _ = model.forward(x=x_for, x_past=x_past, state=state)
 
             # track metric over forecasting period
             print("Forecast ... ")
@@ -653,24 +688,34 @@ def metrics_eval(args, model, test_loader, exp_name, modelname, logstep):
 
             print('COMPUTING ROLLOUT!')
             rollout_len = 0
-            stacked_pred, abs_err = create_rollout(model, x, x_for, x_past, s, lead_time)
+            stacked_pred, abs_err = create_rollout(model, x_for, x_past, lead_time)
             x = stacked_pred
 
             print('ROLLOUT COMPUTED!')
 
-            # MAE
-            mae08.append(metrics.MAE(inv_scaler(stacked_pred, min_value=x_for_unorm.min(), max_value=x_for_unorm.max()), x_for_unorm).detach().cpu().numpy())
+            x_for_new = item[1][:,2:,...].to('cuda')
+
+            if args.trainset == 'temp':
+                inv_scaler = InverseMinMaxScaler()
+                x_new = inv_scaler(stacked_pred).squeeze(1).cuda()
+
+            if args.trainset == 'geop':
+                x_new = (stacked_pred * (x_for_new.max() - x_for_new.min()) + x_for_new.min()).cuda()
 
             # RMSE
-            rmse08.append(metrics.RMSE(inv_scaler(stacked_pred, min_value=x_for_unorm.min(), max_value=x_for_unorm.max()),x_for_unorm).detach().cpu().numpy())
+            print(metrics.RMSE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
+            norm_rmse.append(metrics.RMSE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
+            rmse.append(metrics.RMSE(x_new.unsqueeze(1), x_for_new.unsqueeze(1).cuda()).mean(1).detach().cpu().numpy())
 
-            # NLL
-            nll08.append(nll)
+            # weighted RMSE
+            # w_rmse.append(metrics.weighted_RMSE(x_new.cpu(), x_for_new.cpu(), latitude, longitude))
 
-            print('3 h', current_rmse[3], current_psnr[3], current_ssim[3])
-            print('20 h', current_rmse[20], current_psnr[20], current_ssim[20])
+            # MAE
+            print(metrics.MAE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
+            mae.append(metrics.MAE(x_new.unsqueeze(1), x_for_new.unsqueeze(1).cuda()).mean(1).detach().cpu().numpy())
+            norm_mae.append(metrics.MAE(stacked_pred, x_for).mean(1).detach().cpu().numpy())
 
-            if batch_idx == 200:
+            if batch_idx == 2:
                 print(batch_idx)
                 break
 
@@ -886,9 +931,9 @@ if __name__ == "__main__":
 
     args.device = "cuda"
 
-    metrics_eval_all()
+    # metrics_eval_all()
 
-    if args.ds or args.s > 1: # simulation run on downsampled / embedded representation
+    if args.ds: # simulation run on downsampled / embedded representation
 
         # load model
         if args.trainset == 'geop':
@@ -958,14 +1003,21 @@ if __name__ == "__main__":
 
     else:
         # no downscaling, simulation run on original input size
-        modelname = 'model_epoch_1_step_34250'
-        modelpath = '/home/mila/c/christina.winkler/climsim_ds/runs/flow_wbench_no_ds__2023_12_05_05_51_46/model_checkpoints/{}.tar'.format(modelname)
+        if args.trainset == 'temp':
+            exp_name = 'flow_temp_no_ds__2024_04_08_13_35_24'
+            modelname = 'model_epoch_6_step_4250'
+            modelpath = '/home/christina/Documents/climsim_ds/runs/{}/model_checkpoints/{}.tar'.format(exp_name, modelname)
+
+        elif args.trainset == 'geop':
+            exp_name = 'flow_geop_no_ds__2024_04_08_15_54_50'
+            modelname = 'model_epoch_0_step_10000'
+            modelpath = '/home/christina/Documents/climsim_ds/runs/{}/model_checkpoints/{}.tar'.format(exp_name, modelname)
 
         model = condNF.FlowModel((in_channels, height, width),
-                                args.filter_size, args.Lst, args.Kst, args.bsz,
-                                args.lag_len, args.s, args.nb, args.device,
-                                args.condch, args.nbits,
-                                args.noscale, args.noscaletest, args.testmode)
+                                  args.filter_size, args.Lst, args.Kst, args.bsz,
+                                  args.lag_len, args.s, args.nb, args.device,
+                                  args.condch, args.nbits,
+                                  args.noscale, args.noscaletest,testmode=args.testmode).to(args.device)
 
         ckpt = torch.load(modelpath, map_location='cuda:0')
         model.load_state_dict(ckpt['model_state_dict'])
@@ -974,6 +1026,6 @@ if __name__ == "__main__":
         params = sum(x.numel() for x in model.parameters() if x.requires_grad)
         print('Nr of Trainable Params {}:  '.format(args.device), params)
         print("Evaluate on test split ...")
-        # test(model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.Lst, args.Kst), modelname, -99999, args)
-        metrics_eval(args, model.cuda(), test_loader, "flow-{}-level-{}-k".format(args.L, args.K), modelname, -99999)
+        test(model.cuda(), test_loader, exp_name, modelname, -99999, args)
+        metrics_eval(args, model.cuda(), test_loader, exp_name, modelname, -99999)
         # metrics_eval_all()
